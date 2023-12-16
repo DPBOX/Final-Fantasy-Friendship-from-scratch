@@ -26,6 +26,7 @@ class Cursor
     double m_vx{0};
     double m_vy{0};
     bool m_calculated_velocity{false};
+    bool m_destination_set{false};
     Texture2D m_cursor{};
     Animation m_animation{CURSOR_ANIM, 0, true, CURSOR_ANIMATION_SPEED};
 };

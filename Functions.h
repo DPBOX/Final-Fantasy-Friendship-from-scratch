@@ -2,7 +2,7 @@
 #define FUNCTIONS_H
 #include "Music_Commands.h"
 
-void music_op(const Music_Command_Params & command);
+long count_words(const string & text);
 
 template <typename T = string>
 vector<T*> to_pointers(const vector<T> & vec)

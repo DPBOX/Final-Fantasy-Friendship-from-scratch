@@ -1,7 +1,7 @@
 #ifndef GAME_STATE_H
 #define GAME_STATE_H
 
-#include "Consts/Script_Structs.h"
+#include "Script_Structs.h"
 #include "Consts/Storyboard_Consts.h"
 #include "World.h"
 #include "Tilemap.h"
@@ -21,8 +21,8 @@ class Game_State
     virtual string get_name() const;
 
     virtual void update() = 0;
-    virtual void update_input(World* world, Cursor* cursor, State_Manager* state_manager, const vector<Fnt*> & fonts) = 0;
-    virtual void render(World* world, const vector<Fnt*> & fonts) const = 0;
+    virtual void update_input(World* world, State_Manager* state_manager) = 0;
+    virtual void render(World* world) const = 0;
   protected:
     string m_name{"Game State"};
 };
@@ -36,8 +36,8 @@ class Title_State : public Game_State
     virtual ~Title_State(){}
 
     virtual void update(){}
-    virtual void update_input(World* world, Cursor* cursor, State_Manager* state_manager, const vector<Fnt*> & fonts);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(World* world, State_Manager* state_manager);
+    virtual void render(World* world) const;
 };
 
 class Explore_State : public Game_State
@@ -48,9 +48,9 @@ class Explore_State : public Game_State
     Explore_State & operator =(const Explore_State & obj) = delete;
     virtual ~Explore_State();
 
-    virtual void update();
-    virtual void update_input(World* world, Cursor* cursor, State_Manager* state_manager, const vector<Fnt*> & fonts);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update(){}
+    virtual void update_input(World* world, State_Manager* state_manager);
+    virtual void render(World* world) const;
   private:
     Map_Handler* m_map_handler{nullptr};
 };
@@ -64,8 +64,8 @@ class Front_Menu_State : public Game_State
     virtual ~Front_Menu_State();
 
     virtual void update();
-    virtual void update_input(World* world, Cursor* cursor, State_Manager* state_manager, const vector<Fnt*> & fonts);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(World* world, State_Manager* state_manager);
+    virtual void render(World* world) const;
   private:
     State_Machine* m_machine{nullptr};
 };
@@ -79,8 +79,8 @@ class Game_Over_State : public Game_State
     virtual ~Game_Over_State(){}
 
     virtual void update(){}
-    virtual void update_input(World* world, Cursor* cursor, State_Manager* state_manager, const vector<Fnt*> & fonts);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(World* world, State_Manager* state_manager);
+    virtual void render(World* world) const;
 };
 
 class State_Manager
@@ -96,13 +96,12 @@ class State_Manager
 
     void change_state();
 
-    void update_input(World* world, Cursor* cursor, State_Manager* state_manager);
+    void update_input(World* world, State_Manager* state_manager);
     void render(World* world) const;
   private:
     vector<Game_State*> m_states{};
     Game_State* m_next_state{nullptr};
     bool m_pop{false};
-    vector<Fnt*> m_fonts{};
 };
 
 class Game
@@ -118,7 +117,6 @@ class Game
 
   private:
     State_Manager* m_state_manager{nullptr};
-    Cursor* m_cursor{nullptr};
     World* m_world{nullptr};
 };
 

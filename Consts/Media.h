@@ -52,6 +52,12 @@ extern const unsigned char binary_Image_inventory_icons_png_size[];
 extern const unsigned char binary_Image_tempest_small_portrait_png_start[];
 extern const unsigned char binary_Image_tempest_small_portrait_png_size[];
 
+extern const unsigned char binary_Image_nightwish_png_start[];
+extern const unsigned char binary_Image_nightwish_png_size[];
+
+extern const unsigned char binary_Image_gallus_png_start[];
+extern const unsigned char binary_Image_gallus_png_size[];
+
 extern const unsigned char binary_Image_nightwish_portrait_png_start[];
 extern const unsigned char binary_Image_nightwish_portrait_png_size[];
 
@@ -96,10 +102,10 @@ extern const unsigned char binary_Music_wagon_mp3_size[];
 
 extern const unsigned char binary_Music_wind_mp3_start[];
 extern const unsigned char binary_Music_wind_mp3_size[];
-*/
+
 extern const unsigned char binary_Music_city_mp3_start[];
 extern const unsigned char binary_Music_city_mp3_size[];
-/*
+
 extern const unsigned char binary_Sound_door_break_wav_start[];
 extern const unsigned char binary_Sound_door_break_wav_size[];
 

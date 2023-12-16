@@ -8,19 +8,7 @@ void State_Machine::set_start_state_front_menu(World* world)
   next_state = NULL_STATE;
   current_state = new State_Machine::Front_Menu(world);
   ++mem;
-  Wave wave{LoadWaveFromMemory(".wav", CURSOR_SOUND.m_data, CURSOR_SOUND.m_size)};
-  m_cursor_sound = LoadSoundFromWave(wave);
-  UnloadWave(wave);
-  Wave wave2{LoadWaveFromMemory(".wav", CONFIRM_SOUND.m_data, CONFIRM_SOUND.m_size)};
-  m_confirm_sound = LoadSoundFromWave(wave2);
-  UnloadWave(wave2);
-  Wave wave3{LoadWaveFromMemory(".wav", BACK_SOUND.m_data, BACK_SOUND.m_size)};
-  m_back_sound = LoadSoundFromWave(wave3);
-  UnloadWave(wave3);
-  Wave wave4{LoadWaveFromMemory(".wav", BUZZER_SOUND.m_data, BUZZER_SOUND.m_size)};
-  m_buzzer_sound = LoadSoundFromWave(wave4);
-  UnloadWave(wave4);
-  PlaySound(m_confirm_sound);
+  world->play_global_sound("Confirm");
 }
 
 State_Machine::~State_Machine()
@@ -28,10 +16,6 @@ State_Machine::~State_Machine()
   delete current_state;
   current_state = nullptr;
   --mem;
-  UnloadSound(m_cursor_sound);
-  UnloadSound(m_confirm_sound);
-  UnloadSound(m_back_sound);
-  UnloadSound(m_buzzer_sound);
 }
 
 void State_Machine::update()
@@ -39,9 +23,9 @@ void State_Machine::update()
   current_state->update();
 }
 
-void State_Machine::update_input(State_Machine* machine, Cursor* cursor, World* world)
+void State_Machine::update_input(State_Machine* machine, World* world)
 {
-  current_state->update_input(machine, cursor, world);
+  current_state->update_input(machine, world);
 }
 
 void State_Machine::change_state(World* world)
@@ -82,9 +66,9 @@ void State_Machine::change_state(World* world)
   return;
 }
 
-void State_Machine::render(World* world, const vector<Fnt*> & fonts) const
+void State_Machine::render(World* world) const
 {
-  current_state->render(world, fonts);
+  current_state->render(world);
 }
 
 void State_Machine::set_next_state(const state_list & new_state, const string & selected_party_member_name)
@@ -177,10 +161,10 @@ State_Machine::Front_Menu::~Front_Menu()
   }
 }
 
-void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cursor, World* world)
+void State_Machine::Front_Menu::update_input(State_Machine* machine, World* world)
 {
-  m_selection->update_input(cursor);
-  m_party_menu->update_input(cursor);
+  m_selection->update_input(world);
+  m_party_menu->update_input(world);
   for(long i{0}; i < static_cast<long>(m_party_info.size()); ++i)
   {
     m_party_info[i]->update_tweens(world);
@@ -188,11 +172,6 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
   
   long selected_item{-1};
   long highlighted_item{-1};
-
-  if(IsKeyPressed(KEY_UP) == true || IsKeyPressed(KEY_DOWN) == true)
-  {
-    PlaySound(machine->m_cursor_sound);
-  }
 
   if(m_selection->cursor_shown() == true)
   {
@@ -208,27 +187,27 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
       case -1:
         break;
       case 0:
-        PlaySound(machine->m_confirm_sound);
+        world->play_global_sound("Confirm");
         machine->set_next_state(State_Machine::ITEM_MENU_STATE);
         break;
       case 1:
-        PlaySound(machine->m_buzzer_sound);
+        world->play_global_sound("Buzzer");
         m_option_selected = 1;
         break;
       case 2:
-        PlaySound(machine->m_confirm_sound);
+        world->play_global_sound("Confirm");
         m_selection->hide_cursor();
         m_party_menu->show_cursor();
         m_option_selected = 2;
         break;
       case 3:
-        PlaySound(machine->m_confirm_sound);
+        world->play_global_sound("Confirm");
         m_selection->hide_cursor();
         m_party_menu->show_cursor();
         m_option_selected = 3;
         break;
       case 4:
-        PlaySound(machine->m_buzzer_sound);
+        world->play_global_sound("Buzzer");
         break;
       default:
         crash("Error: Tried to select invalid option " + to_string(selected_item) + " in selection menu \"" + m_selection->c_get_options() + "\".");
@@ -251,7 +230,7 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
 
     if(IsKeyPressed(KEY_X) == true)
     {
-      PlaySound(machine->m_back_sound);
+      world->play_global_sound("Back");
       m_party_menu->hide_cursor();
       m_selection->show_cursor();
       m_option_selected = -1;
@@ -262,7 +241,7 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
     }
     selected_item = m_party_menu->get_selected_item();
     highlighted_item = m_party_menu->get_highlighted_item();
-    
+
     switch(m_option_selected)
     {
       case -1:
@@ -273,26 +252,30 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
       case 2:
         if(IsKeyPressed(KEY_Z) == true)
         {
-          PlaySound(machine->m_confirm_sound);
+          world->play_global_sound("Confirm");
           machine->set_next_state(State_Machine::STATUS_MENU_STATE, world->get_party_member_name(highlighted_item));
         }
         break;
       case 3:
         if(IsKeyPressed(KEY_LEFT) == true)
         {
-          PlaySound(machine->m_cursor_sound);
-          world->set_party_member_front_row(world->get_party_member_name(highlighted_item));
-          m_party_info[highlighted_item]->set_portrait_tween(true);
+          if(world->set_party_member_front_row(world->get_party_member_name(highlighted_item)) == true)
+          {
+            world->play_global_sound("Cursor");
+            m_party_info[highlighted_item]->set_portrait_tween(true);
+          }
         }
         if(IsKeyPressed(KEY_RIGHT) == true)
         {
-          PlaySound(machine->m_cursor_sound);
-          world->set_party_member_back_row(world->get_party_member_name(highlighted_item));
-          m_party_info[highlighted_item]->set_portrait_tween(false);
+          if(world->set_party_member_back_row(world->get_party_member_name(highlighted_item)) == true)
+          {
+            world->play_global_sound("Cursor");
+            m_party_info[highlighted_item]->set_portrait_tween(false);
+          }
         }
         if(IsKeyPressed(KEY_Z) == true)
         {
-          PlaySound(machine->m_confirm_sound);
+          world->play_global_sound("Confirm");
           if(highlighted_item == switch_on || switch_on == -1)
           {
             m_party_info[highlighted_item]->toggle_switch_rect();
@@ -318,31 +301,31 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, Cursor* cur
   }
 }
 
-void State_Machine::Front_Menu::render(World* world, const vector<Fnt*> & fonts) const
+void State_Machine::Front_Menu::render(World* world) const
 {
   m_gold->render(m_panel_texture);
   m_map->render(m_panel_texture);
   m_party->render(m_panel_texture);
   m_menu->render(m_panel_texture);
-  m_selection->render(fonts);
-  m_party_menu->render(fonts);
-  string map_first_line{split_map_name_text(0, fonts[0])};
-  string map_second_line{split_map_name_text(1, fonts[0])};
-  fonts[0]->render_text(map_first_line, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (4 * fonts[0]->get_height() + TEXTBOX_PADDING_SHORT * 3) - TEXTBOX_PADDING_SCREEN_Y);
-  fonts[0]->render_text(map_second_line, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (3 * fonts[0]->get_height() + TEXTBOX_PADDING_SHORT * 3) - TEXTBOX_PADDING_SCREEN_Y);
-  fonts[0]->render_text(to_string(world->get_money()) + " Bits", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (2 * fonts[0]->get_height() + TEXTBOX_PADDING_SHORT) - TEXTBOX_PADDING_SCREEN_Y);
-  fonts[0]->render_text("Play Time: " + world->get_time(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (fonts[0]->get_height() + TEXTBOX_PADDING_SHORT) - TEXTBOX_PADDING_SCREEN_Y);
+  m_selection->render(world);
+  m_party_menu->render(world);
+  string map_first_line{split_map_name_text(0)};
+  string map_second_line{split_map_name_text(1)};
+  world->render_text(0, map_first_line, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (4 * world->get_font_height(0) + TEXTBOX_PADDING_SHORT * 3) - TEXTBOX_PADDING_SCREEN_Y);
+  world->render_text(0, map_second_line, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (3 * world->get_font_height(0) + TEXTBOX_PADDING_SHORT * 3) - TEXTBOX_PADDING_SCREEN_Y);
+  world->render_text(0, to_string(world->get_money()) + " Bits", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (2 * world->get_font_height(0) + TEXTBOX_PADDING_SHORT) - TEXTBOX_PADDING_SCREEN_Y);
+  world->render_text(0, "Play Time: " + world->get_time(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (world->get_font_height(0) + TEXTBOX_PADDING_SHORT) - TEXTBOX_PADDING_SCREEN_Y);
   if(m_option_selected == 3)
   {
     m_formation->render(m_panel_texture);
     for(long i{0}; i < static_cast<long>(FORMATION_MENU_TEXT.size()); ++i)
     {
-      fonts[0]->render_text(FORMATION_MENU_TEXT[i], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + fonts[0]->get_height() * i);
+      world->render_text(0, FORMATION_MENU_TEXT[i], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + world->get_font_height(0) * i);
     }
   }
   for(long i{0}; i < static_cast<long>(m_party_info.size()); ++i)
   {
-    m_party_info[i]->render(world, fonts);
+    m_party_info[i]->render(world);
   }
 }
 
@@ -351,9 +334,9 @@ bool State_Machine::Front_Menu::root_menu_cursor_shown() const
   return m_selection->cursor_shown();
 }
 
-string State_Machine::Front_Menu::split_map_name_text(const bool & line_number, Fnt* font) const
+string State_Machine::Front_Menu::split_map_name_text(const bool & line_number) const
 {
-  long num_words{font->count_words(m_top_bar_text)};
+  long num_words{count_words(m_top_bar_text)};
   string word1{""};
   string word2{""};
   long i{0};
@@ -460,27 +443,22 @@ State_Machine::Item_Menu::~Item_Menu()
   --mem;
 }
 
-void State_Machine::Item_Menu::update_input(State_Machine* machine, Cursor* cursor, World* world)
+void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world)
 {
   if(IsKeyPressed(KEY_X) == true && m_category->cursor_shown() == true)
   {
-    PlaySound(machine->m_back_sound);
+    world->play_global_sound("Back");
     machine->set_next_state(State_Machine::FRONT_MENU_STATE);
   }
   long selected_item{-1};
   long highlighted_item{-1};
 
-  m_category->update_input(cursor);
-  m_items->update_input(cursor, world);
-  m_key_items->update_input(cursor, world);
+  m_category->update_input(world);
+  m_items->update_input(world);
+  m_key_items->update_input(world);
 
   if(m_category->cursor_shown() == true)
   {
-    if(IsKeyPressed(KEY_LEFT) == true || IsKeyPressed(KEY_RIGHT) == true)
-    {
-      PlaySound(machine->m_cursor_sound);
-    }
-
     selected_item = m_category->get_selected_item();
     highlighted_item = m_category->get_highlighted_item();
     switch(highlighted_item)
@@ -503,25 +481,25 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, Cursor* curs
       case 0:
         if(world->has_items() == true)
         {
-          PlaySound(machine->m_confirm_sound);
+          world->play_global_sound("Confirm");
           m_category->hide_cursor();
           m_items->show_cursor();
         }
         else
         {
-          PlaySound(machine->m_buzzer_sound);
+          world->play_global_sound("Buzzer");
         }
         break;
       case 1:
         if(world->has_key_items() == true)
         {
-          PlaySound(machine->m_confirm_sound);
+          world->play_global_sound("Confirm");
           m_category->hide_cursor();
           m_key_items->show_cursor();
         }
         else
         {
-          PlaySound(machine->m_buzzer_sound);
+          world->play_global_sound("Buzzer");
         }
         break;
       default:
@@ -533,21 +511,17 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, Cursor* curs
   {
     if(IsKeyPressed(KEY_X) == true)
     {
-      PlaySound(machine->m_back_sound);
+      world->play_global_sound("Back");
       m_items->hide_cursor();
       m_key_items->hide_cursor();
       m_category->show_cursor();
-    }
-    if(IsKeyPressed(KEY_LEFT) == true || IsKeyPressed(KEY_RIGHT) == true || IsKeyPressed(KEY_UP) == true || IsKeyPressed(KEY_DOWN) == true)
-    {
-      PlaySound(machine->m_cursor_sound);
     }
   }
   if(m_items->cursor_shown() == true)
   {
     if(IsKeyPressed(KEY_Z) == true)
     {
-      PlaySound(machine->m_confirm_sound);
+      world->play_global_sound("Confirm");
     }
     selected_item = m_items->get_selected_item();
     world->remove_item(selected_item);
@@ -562,29 +536,29 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, Cursor* curs
   {
     if(IsKeyPressed(KEY_Z) == true)
     {
-      PlaySound(machine->m_buzzer_sound);
+      world->play_global_sound("Buzzer");
     }
-    m_key_items->update_input(cursor, world);
+    m_key_items->update_input(world);
   }
 }
 
-void State_Machine::Item_Menu::render(World* world, const vector<Fnt*> & fonts) const
+void State_Machine::Item_Menu::render(World* world) const
 {
   m_switch->render(m_panel_texture);
   m_item_text->render(m_panel_texture);
   m_description->render(m_panel_texture);
   m_item_list->render(m_panel_texture);
-  m_category->render(fonts);
-  m_items->render(fonts, world);
-  m_key_items->render(fonts, world);
-  fonts[0]->render_text(m_top_bar_text, TEXTBOX_PADDING_SCREEN + (SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2) / ITEM_MENU_SPLIT / 2 - fonts[0]->get_word_width(m_top_bar_text) / 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_category->render(world);
+  m_items->render(world);
+  m_key_items->render(world);
+  world->render_text(0, m_top_bar_text, TEXTBOX_PADDING_SCREEN + (SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2) / ITEM_MENU_SPLIT / 2 - world->get_word_width(0, m_top_bar_text) / 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
   if(m_items->cursor_shown() == true)
   {
-    fonts[0]->render_text(world->get_item(m_items->get_highlighted_item()).get_item().get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + fonts[0]->get_height());
+    world->render_text(0, world->get_item(m_items->get_highlighted_item()).get_item().get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
   }
   if(m_key_items->cursor_shown() == true)
   {
-    fonts[0]->render_text(world->get_key_item(m_key_items->get_highlighted_item()).get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + fonts[0]->get_height());
+    world->render_text(0, world->get_key_item(m_key_items->get_highlighted_item()).get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
   }
 }
 
@@ -625,52 +599,63 @@ State_Machine::Status_Menu::~Status_Menu()
   delete m_selection;
   m_selection = nullptr;
   --mem;
+  delete m_hp;
+  delete m_mp;
+  delete m_exp;
+  delete m_soul_break;
+  delete m_scroll;
+  m_hp = nullptr;
+  m_mp = nullptr;
+  m_exp = nullptr;
+  m_soul_break = nullptr;
+  m_scroll = nullptr;
+  --mem;
+  --mem;
+  --mem;
+  --mem;
+  --mem;
 }
 
-void State_Machine::Status_Menu::update_input(State_Machine* machine, Cursor* cursor, World* world)
+void State_Machine::Status_Menu::update_input(State_Machine* machine, World* world)
 {
   if(IsKeyPressed(KEY_X) == true/* && m_category->cursor_shown() == true*/)
   {
-    PlaySound(machine->m_back_sound);
+    world->play_global_sound("Back");
     machine->set_next_state(State_Machine::FRONT_MENU_STATE);
   }
   if(IsKeyPressed(KEY_Z) == true)
   {
-    PlaySound(machine->m_buzzer_sound);
-  }
-  if(IsKeyPressed(KEY_LEFT) == true || IsKeyPressed(KEY_RIGHT) == true || IsKeyPressed(KEY_UP) == true || IsKeyPressed(KEY_DOWN) == true)
-  {
-    PlaySound(machine->m_cursor_sound);
+    world->play_global_sound("Buzzer");
   }
   m_hp->set_value(world->get_party_member_unmodified_stat(m_character_name, "HP"), world->get_party_member_stat(m_character_name, "Max HP"));
   m_mp->set_value(world->get_party_member_unmodified_stat(m_character_name, "MP"), world->get_party_member_stat(m_character_name, "Max MP"));
   m_exp->set_value(world->get_party_member_unmodified_stat(m_character_name, "EXP"), world->get_party_member_unmodified_stat(m_character_name, "Next Level Total EXP"), world->get_party_member_unmodified_stat(m_character_name, "Current Level Starting EXP"));
-  m_selection->update_input(cursor);
+  m_selection->update_input(world);
 }
 
-void State_Machine::Status_Menu::render(World* world, const vector<Fnt*> & fonts) const
+void State_Machine::Status_Menu::render(World* world) const
 {
   long section_width{(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2) / 3};
   m_panel->render(m_panel_texture);
-  m_selection->render(fonts, world, m_character_name);
+  m_selection->render(world, m_character_name);
   world->render_party_member_portrait(m_character_name, 1, TEXTBOX_PADDING_LONG + TEXTBOX_PADDING_SCREEN, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y);
-  fonts[0]->render_text(m_character_name + " Lv. " + to_string(world->get_party_member_unmodified_stat(m_character_name, "Level")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y);
-  fonts[0]->render_text(world->get_party_member_species(m_character_name), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT);
-  fonts[0]->render_text(world->get_party_member_class(m_character_name), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2);
-  fonts[0]->render_text("HP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "HP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max HP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  fonts[0]->render_text("MP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "MP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max MP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text(0, m_character_name + " Lv. " + to_string(world->get_party_member_unmodified_stat(m_character_name, "Level")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y);
+  world->render_text(0, world->get_party_member_species(m_character_name), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT);
+  world->render_text(0, world->get_party_member_class(m_character_name), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2);
+  world->render_text(0, "HP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "HP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max HP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text(0, "MP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "MP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max MP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   m_hp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   m_mp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  fonts[0]->render_text("Status: Normal", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5);
-  fonts[0]->render_text("Scroll", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4);
-  fonts[0]->render_text("Total EXP          " + to_string(world->get_party_member_unmodified_stat(m_character_name, "EXP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
-  fonts[0]->render_text("To Next Level     " + to_string(world->get_party_member_unmodified_stat(m_character_name, "Next Level EXP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  fonts[0]->render_text("Soul Break Level  " + to_string(world->get_party_member_soul_break_level(m_character_name)), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  fonts[0]->render_text("AP                   0/10", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  fonts[0]->render_text("Equipment", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
+  world->render_text(0, "Status: Normal", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5);
+  world->render_text(0, "Scroll", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4);
+  world->render_text(0, "Total EXP          " + to_string(world->get_party_member_unmodified_stat(m_character_name, "EXP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  world->render_text(0, "To Next Level     " + to_string(world->get_party_member_unmodified_stat(m_character_name, "Next Level EXP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text(0, "Soul Break Level  " + to_string(world->get_party_member_soul_break_level(m_character_name)), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text(0, "AP                   0/10", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text(0, "Equipment", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
   m_exp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   m_soul_break->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   m_scroll->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  fonts[0]->render_text(STAT_DESCRIPTIONS_LINE_1[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
-  fonts[0]->render_text(STAT_DESCRIPTIONS_LINE_2[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
+  world->render_text(0, STAT_DESCRIPTIONS_LINE_1[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+  world->render_text(0, STAT_DESCRIPTIONS_LINE_2[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
 }

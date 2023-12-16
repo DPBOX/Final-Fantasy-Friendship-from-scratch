@@ -2,20 +2,19 @@
 #define UI_H
 
 #include "World.h"
-#include "Cursor.h"
 
 class World;
 
 struct Font_Params
 {
-  explicit Font_Params(const string & name = "Text", const unsigned char data[] = binary_Image_text_font_png_start, const long & size = reinterpret_cast<long>(&binary_Image_text_font_png_size), const long* const cell_width = &FONT_TEXT_CELL_WIDTH, const vector<long>* const char_widths = &FONT_TEXT_CHAR_WIDTHS) : m_name(name), m_data(data), m_size(size), m_cell_width(cell_width), m_char_widths(char_widths){}
+  explicit Font_Params(const string & name = "Text", const unsigned char data[] = binary_Image_text_font_png_start, const long & size = reinterpret_cast<long>(&binary_Image_text_font_png_size), const long & cell_width = FONT_TEXT_CELL_WIDTH, const array<long, NUM_FONT_CELLS> & char_widths = FONT_TEXT_CHAR_WIDTHS) : m_name(name), m_data(data), m_size(size), m_cell_width(cell_width), m_char_widths(char_widths){}
   explicit Font_Params(const Font_Params & obj) = default;
   Font_Params & operator =(const Font_Params & obj) = default;
   string m_name{"NULL"};
   const unsigned char* m_data{nullptr};
   long m_size{1};
-  const long* m_cell_width{nullptr};
-  const vector<long>* m_char_widths{nullptr};
+  long m_cell_width{0};
+  const array<long, NUM_FONT_CELLS> m_char_widths{};
 };
 
 #include "Consts/Font_Consts.h"
@@ -32,13 +31,12 @@ class Fnt
     long get_cell_width() const;
     long get_char_width(const long & index) const;
     long get_word_width(string word) const;
-    long count_words(const string & text) const;
     void render_text(string text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
     void render_text_center(string text, const long & y_pos, const long & alpha = 255) const;
     void render_letter(const long & x, const long & y, const char & id, const long & alpha = 255) const;
   private:
-    const long* m_cell_width{nullptr};
-    const vector<long>* m_char_widths{nullptr};
+    long m_cell_width{0};
+    array<long, NUM_FONT_CELLS> m_char_widths{};
     Texture2D m_font_img{};
 };
 
@@ -103,7 +101,7 @@ class Player_Summary
     Player_Summary & operator =(const Player_Summary & obj) = delete;
     ~Player_Summary();
     
-    void render(World* world, const vector<Fnt*> & fonts) const;
+    void render(World* world) const;
     
     void set_portrait_tween(const bool & start);
     void set_y_tween(const long & index1, const long & index2, const bool & index);
@@ -137,8 +135,8 @@ class Selection
     Selection & operator =(const Selection & obj) = delete;
     ~Selection(){}
 
-    void update_input(Cursor* cursor, World* world = nullptr);
-    void render(const vector<Fnt*> & fonts, World* world = nullptr, const string & party_member_name = "NULL") const;
+    void update_input(World* world);
+    void render(World* world, const string & party_member_name = "NULL") const;
     
     void set_position(const long & x, const long & y);
     void set_spacing_x(const long & text_area_width);
@@ -154,7 +152,7 @@ class Selection
     string c_get_options() const;
 
   private:
-    void render_item(const long & x, const long & y, const long & item_index, Fnt* font) const;
+    void render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
     void on_click();
 
     long m_x{0};
@@ -181,19 +179,19 @@ template<>
 Selection<string>::~Selection();
 
 template <>
-void Selection<string>::update_input(Cursor* cursor, World* world);
+void Selection<string>::update_input(World* world);
 
 template <>
-void Selection<Player_Summary>::update_input(Cursor* cursor, World* world);
+void Selection<Player_Summary>::update_input(World* world);
 
 template <>
-void Selection<string>::render(const vector<Fnt*> & fonts, World* world, const string & party_member_name) const;
+void Selection<string>::render(World* world, const string & party_member_name) const;
 
 template <>
 string Selection<string>::c_get_options() const;
 
 template <>
-void Selection<string>::render_item(const long & x, const long & y, const long & item_index, Fnt* font) const;
+void Selection<string>::render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
 
 template <>
 void Selection<string>::on_click();
@@ -209,23 +207,23 @@ class Textbox
     void add_title(const string & title);
     void add_portrait(const unsigned char* data, const long & size);
     void add_selection_menu(Selection<string>* s);
-    void create_fitted(const long & size_x, const long & size_y, const vector<Fnt*> & fonts);
-    void create_fitted_choices(const long & size_x, const long & size_y, const vector<string> & choices, const vector<Fnt*> & fonts);
-    void create_fixed(const long & size_x, const long & size_y, const long & size_width, const long & size_height, const vector<Fnt*> & fonts);
+    void create_fitted(const long & size_x, const long & size_y, World* world);
+    void create_fitted_choices(const long & size_x, const long & size_y, const vector<string> & choices, World* world);
+    void create_fixed(const long & size_x, const long & size_y, const long & size_width, const long & size_height, World* world);
     Textbox(const Textbox & obj) = delete;
     Textbox & operator =(const Textbox & obj) = delete;
     ~Textbox();
 
-    void update_input(Cursor* cursor);
-    void render(const vector<Fnt*> & fonts) const;
+    void update_input(World* world);
+    void render(World* world) const;
     
     long get_selected_item();
     bool dead();
 
   private:
     void on_click();
-    void break_text(string text, Fnt* font);
-    void render_textbox(string text, Fnt* font) const;
+    void break_text(string text, World* world, const long & font_no);
+    void render_textbox(string text, World* world, const long & font_no) const;
   
     string m_text{""};
     string m_title_text{""};

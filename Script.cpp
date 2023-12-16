@@ -2,7 +2,7 @@
 #include "Tilemap.h"
 #include "Consts/Map_Consts.h"
 
-Script::~Script()
+Map_Handler::Script::~Script()
 {
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
   {
@@ -17,13 +17,6 @@ Script::~Script()
     m_caption_list[i] = nullptr;
     --mem;
   }
-  
-  for(long i{0}; i < static_cast<long>(m_sound_list.size()); ++i)
-  {
-    delete m_sound_list[i];
-    m_sound_list[i] = nullptr;
-    --mem;
-  }
   if(m_textbox != nullptr)
   {
     delete m_textbox;
@@ -35,18 +28,13 @@ Script::~Script()
   m_choice_scripts.clear();
   m_screen_list.clear();
   m_caption_list.clear();
-  m_sound_list.clear();
 }
 
-void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world, const vector<Fnt*> & fonts)
+void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
 {
   if(m_textbox != nullptr)
   {
-    m_textbox->update_input(cursor);
-  }
-  else
-  {
-    cursor->finish();
+    m_textbox->update_input(world);
   }
 
   if(m_inner_index == m_inner_index2)
@@ -88,45 +76,8 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             ++m_inner_index2;
             break;
 
-          case Script_Op::Add_Music:
-            music_op(Music_Command_Params{Music_Command::Add, Add_Music_Params{get<Add_Music_Script_Params>(m_events[m_outer_index][m_inner_index]).m_music}});
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Remove_Music:
-            music_op(Music_Command_Params{Music_Command::Remove});
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Remove_All_Music:
-            music_op(Music_Command_Params{Music_Command::Remove_All});
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Play_Music:
-            music_op(Music_Command_Params{Music_Command::Play, Play_Pause_Music_Params{get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name}});
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Set_Music_Volume:
-            music_op(Music_Command_Params{Music_Command::Volume, Volume_Music_Params{get<Change_Music_Volume_Params>(m_events[m_outer_index][m_inner_index]).m_music_name, get<Change_Music_Volume_Params>(m_events[m_outer_index][m_inner_index]).m_volume}});
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-
           case Script_Op::Add_Caption:
             m_caption_list.push_back(new Caption_Data{get<Add_Caption_Params>(m_events[m_outer_index][m_inner_index]).m_font, get<Add_Caption_Params>(m_events[m_outer_index][m_inner_index]).m_id, get<Add_Caption_Params>(m_events[m_outer_index][m_inner_index]).m_text, get<Add_Caption_Params>(m_events[m_outer_index][m_inner_index]).m_y_pos});
-            ++mem;
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Add_Sound:
-            m_sound_list.push_back(new Sound_Data{get<Add_Sound_Params>(m_events[m_outer_index][m_inner_index]).m_params});
             ++mem;
             ++m_inner_index;
             ++m_inner_index2;
@@ -157,16 +108,7 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             break;
 
           case Script_Op::Play_Sound:
-            for(long j{0}; j < static_cast<long>(m_sound_list.size()); ++j)
-            {
-              if(m_sound_list[j]->m_id == get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name)
-              {
-                SetSoundVolume(m_sound_list[j]->m_sound, m_sound_list[j]->m_volume);
-                PlaySound(m_sound_list[j]->m_sound);
-              }
-            }
-            ++m_inner_index;
-            ++m_inner_index2;
+
             break;
         
           case Script_Op::Change_Map:
@@ -183,24 +125,6 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
         
           case Script_Op::Deactivate_Trigger:
             map_handler->deactivate_trigger();
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
-          case Script_Op::Deactivate_Use_Trigger:
-            map_handler->deactivate_trigger("Use");
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-
-          case Script_Op::Deactivate_Enter_Trigger:
-            map_handler->deactivate_trigger("Enter");
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-
-          case Script_Op::Deactivate_Exit_Trigger:
-            map_handler->deactivate_trigger("Exit");
             ++m_inner_index;
             ++m_inner_index2;
             break;
@@ -260,43 +184,6 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             ++m_inner_index;
             break;
 
-          case Script_Op::Fade_In_Music:
-            instant = false;
-            m_tween_list.push_back(Tween_Data{"Fade In Music", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, 1 / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), 0, 1});
-            music_op(Music_Command_Params{Music_Command::Play, Play_Pause_Music_Params{get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name}});
-            ++m_inner_index;
-            break;
-        
-          case Script_Op::Fade_Out_Music:
-            instant = false;
-            m_tween_list.push_back(Tween_Data{"Fade Out Music", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, -(1 / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), 1, 0});
-            ++m_inner_index;
-            break;
-
-          case Script_Op::Fade_In_Sound:
-            instant = false;
-            for(long j{0}; j < static_cast<long>(m_sound_list.size()); ++j)
-            {
-              if(m_sound_list[j]->m_id == get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name)
-              {
-                m_tween_list.push_back(Tween_Data{"Fade In Sound", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, m_sound_list[j]->m_target_volume / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), 0, m_sound_list[j]->m_target_volume});
-              }
-            }
-            ++m_inner_index;
-            break;
-        
-          case Script_Op::Fade_Out_Sound:
-            instant = false;
-            for(long j{0}; j < static_cast<long>(m_sound_list.size()); ++j)
-            {
-              if(m_sound_list[j]->m_id == get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name)
-              {
-                m_tween_list.push_back(Tween_Data{"Fade Out Sound", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, -(m_sound_list[j]->m_target_volume / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), m_sound_list[j]->m_target_volume, 0});
-              }
-            }
-            ++m_inner_index;
-            break;
-
           case Script_Op::Fade_In_Caption:
             instant = false;
             m_tween_list.push_back(Tween_Data{"Fade In Caption", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, 255 / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), 0, 255});
@@ -344,26 +231,32 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             map_handler->set_npc_path(get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_path);
             ++m_inner_index;
             break;
-        
+
           case Script_Op::Say:
             instant = false;
             m_tween_list.push_back(Tween_Data{"Say", "NULL", 0, 0, 0});
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted(map_handler->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, fonts);
+            m_textbox->create_fitted(map_handler->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, world);
             ++m_inner_index;
             break;
-        
+
+          case Script_Op::Interact:
+            m_new_script = map_handler->get_npc_script(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
+
           case Script_Op::Talk:
             instant = false;
             m_tween_list.push_back(Tween_Data{"Talk", "NULL", 0, 0, 0});
             m_textbox = new Textbox;
             ++mem;
-            m_textbox->add_text(map_handler->get_npc_speech(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name));
-            m_textbox->add_title(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
-            m_textbox->add_portrait(binary_Image_avatar_png_start, reinterpret_cast<long>(&binary_Image_avatar_png_size));
-            m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 6) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 6, fonts);
+            m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
+            m_textbox->add_title(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name);
+            m_textbox->add_portrait(binary_Image_tempest_small_portrait_png_start, reinterpret_cast<long>(&binary_Image_tempest_small_portrait_png_size));
+            m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4, world);
             ++m_inner_index;
             break;
         
@@ -375,15 +268,15 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted_choices(map_handler->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices, fonts);
+            m_textbox->create_fitted_choices(map_handler->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices, world);
             ++m_inner_index;
             break;
 
           case Script_Op::Move_Camera_To_Tile:
             instant = false;
             map_handler->set_follow_cam("NULL");
-            m_tween_list.push_back(Tween_Data{"Move Camera To Tile X", "NULL", ((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2) - map_handler->get_manual_cam_x() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), static_cast<double>(map_handler->get_manual_cam_x()), (get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2});
-            m_tween_list.push_back(Tween_Data{"Move Camera To Tile Y", "NULL", ((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2) - map_handler->get_manual_cam_y() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), static_cast<double>(map_handler->get_manual_cam_y()), (get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2});
+            m_tween_list.push_back(Tween_Data{"Move Camera To Tile X", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2) - map_handler->get_manual_cam_x() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map_handler->get_manual_cam_x()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2)});
+            m_tween_list.push_back(Tween_Data{"Move Camera To Tile Y", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2) - map_handler->get_manual_cam_y() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map_handler->get_manual_cam_y()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2)});
             ++m_inner_index;
             break;
 
@@ -406,47 +299,7 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
     {
       if(m_tween_list[i].m_done == false)
       {
-        if(m_tween_list[i].m_function == "Fade In Music" || m_tween_list[i].m_function == "Fade Out Music")
-        {
-          m_tween_list[i].m_position += m_tween_list[i].m_velocity;
-          music_op(Music_Command_Params{Music_Command::Volume, Volume_Music_Params{m_tween_list[i].m_target, m_tween_list[i].m_position}});
-          if((m_tween_list[i].m_function == "Fade In Music" && m_tween_list[i].m_position >= m_tween_list[i].m_end) || (m_tween_list[i].m_function == "Fade Out Music" && m_tween_list[i].m_position <= m_tween_list[i].m_end))
-          {
-            m_tween_list[i].m_position = m_tween_list[i].m_end;
-            music_op(Music_Command_Params{Music_Command::Volume, Volume_Music_Params{m_tween_list[i].m_target, m_tween_list[i].m_position}});
-            m_tween_list[i].m_done = true;
-            if(m_tween_list[i].m_function == "Fade Out Music")
-            {
-              music_op(Music_Command_Params{Music_Command::Pause, Play_Pause_Music_Params{m_tween_list[i].m_target}});
-            }
-            ++m_inner_index2;
-          }
-        }
-
-        else if(m_tween_list[i].m_function == "Fade In Sound" || m_tween_list[i].m_function == "Fade Out Sound")
-        {
-          m_tween_list[i].m_position += m_tween_list[i].m_velocity;
-          long target_index{-1};
-          for(long j{0}; j < static_cast<long>(m_sound_list.size()); ++j)
-          {
-            if(m_sound_list[j]->m_id == m_tween_list[i].m_target)
-            {
-              target_index = j;
-            }
-          }
-          m_sound_list[target_index]->m_volume = m_tween_list[i].m_position;
-          SetSoundVolume(m_sound_list[target_index]->m_sound, m_sound_list[target_index]->m_volume);
-          if((m_tween_list[i].m_function == "Fade In Sound" && m_tween_list[i].m_position >= m_tween_list[i].m_end) || (m_tween_list[i].m_function == "Fade Out Sound" && m_tween_list[i].m_position <= m_tween_list[i].m_end))
-          {
-            m_tween_list[i].m_position = m_tween_list[i].m_end;
-            m_sound_list[target_index]->m_volume = m_tween_list[i].m_position;
-            SetSoundVolume(m_sound_list[target_index]->m_sound, m_sound_list[target_index]->m_volume);
-            m_tween_list[i].m_done = true;
-            ++m_inner_index2;
-          }
-        }
-
-        else if(m_tween_list[i].m_function == "Fade In Caption" || m_tween_list[i].m_function == "Fade Out Caption")
+        if(m_tween_list[i].m_function == "Fade In Caption" || m_tween_list[i].m_function == "Fade Out Caption")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
           long target_index{-1};
@@ -536,7 +389,7 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
             --mem;
           }
         }
-        
+
         else if(m_tween_list[i].m_function == "Move Camera To Tile X")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
@@ -575,7 +428,7 @@ void Script::update_input(Map_Handler* map_handler, Cursor* cursor, World* world
   }
 }
 
-void Script::render(const vector<Fnt*> & fonts) const
+void Map_Handler::Script::render(World* world) const
 {
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
   {
@@ -584,47 +437,30 @@ void Script::render(const vector<Fnt*> & fonts) const
   
   if(m_textbox != nullptr)
   {
-    m_textbox->render(fonts);
+    m_textbox->render(world);
   }
 
   for(long i{0}; i < static_cast<long>(m_caption_list.size()); ++i)
   {
-    fonts[m_caption_list[i]->m_font]->render_text_center(m_caption_list[i]->m_text, m_caption_list[i]->m_y_pos, m_caption_list[i]->m_alpha);
+    world->render_text_center(m_caption_list[i]->m_font, m_caption_list[i]->m_text, m_caption_list[i]->m_y_pos, m_caption_list[i]->m_alpha);
   }
 }
 
-bool Script::finished() const
+bool Map_Handler::Script::finished() const
 {
   return m_outer_index == static_cast<long>(m_events.m_steps.size());
 }
 
-long Script::get_next_script() const
+long Map_Handler::Script::get_next_script() const
 {
   return m_new_script;
 }
 
-Script::Caption_Data::Caption_Data(const long & font, const string & id, const string & text, const long & y_pos, const long & alpha)
+Map_Handler::Script::Caption_Data::Caption_Data(const long & font, const string & id, const string & text, const long & y_pos, const long & alpha)
 {
   m_id = id;
   m_text = text;
   m_y_pos = y_pos;
   m_alpha = alpha;
   m_font = font;
-}
-
-Script::Sound_Data::Sound_Data(const Sound_Params & params)
-{
-  m_id = params.m_name;
-  m_volume = params.m_volume;
-  m_target_volume = params.m_volume;
-  m_size = params.m_size;
-  m_data = params.m_data;
-  Wave wave{LoadWaveFromMemory(".wav", m_data, m_size)};
-  m_sound = LoadSoundFromWave(wave);
-  UnloadWave(wave);
-}
-
-Script::Sound_Data::~Sound_Data()
-{
-  UnloadSound(m_sound);
 }

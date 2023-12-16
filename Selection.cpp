@@ -13,16 +13,16 @@ Selection<string>::~Selection()
 }
 
 template <>
-void Selection<string>::render_item(const long & x, const long & y, const long & item_index, Fnt* font) const
+void Selection<string>::render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const
 {
   if(item_index >= 0 && item_index < static_cast<long>(m_choices.size()))
   {
-    font->render_text(*m_choices[item_index], x, y);
+    world->render_text(font, *m_choices[item_index], x, y);
   }
 }
 
 template <>
-void Selection<string>::update_input(Cursor* cursor, World* world)
+void Selection<string>::update_input(World* world)
 {
   m_show_cursor = m_queue_show_cursor;
   m_show_menu = m_queue_show_menu;
@@ -81,6 +81,10 @@ void Selection<string>::update_input(Cursor* cursor, World* world)
       long m_focus_y_temp{max(m_focus_y - 1, static_cast<long>(0))};
       if(m_focus_x + m_focus_y_temp * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_y_temp != m_focus_y)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_y = max(m_focus_y - 1, static_cast<long>(0));
         if(m_focus_y < m_display_start)
         {
@@ -94,6 +98,10 @@ void Selection<string>::update_input(Cursor* cursor, World* world)
       long m_focus_y_temp{min(m_focus_y + 1, m_max_rows - 1)};
       if(m_focus_x + m_focus_y_temp * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_y_temp != m_focus_y)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_y = min(m_focus_y + 1, m_max_rows - 1);
         if(m_focus_y > m_display_start + m_display_rows - 1)
         {
@@ -107,6 +115,10 @@ void Selection<string>::update_input(Cursor* cursor, World* world)
       long m_focus_x_temp{max(m_focus_x - 1, static_cast<long>(0))};
       if(m_focus_x_temp + m_focus_y * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_x_temp != m_focus_x)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_x = max(m_focus_x - 1, static_cast<long>(0));
       }
     }
@@ -116,6 +128,10 @@ void Selection<string>::update_input(Cursor* cursor, World* world)
       long m_focus_x_temp{min(m_focus_x + 1, m_columns - 1)};
       if(m_focus_x_temp + m_focus_y * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_x_temp != m_focus_x)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_x = min(m_focus_x + 1, m_columns - 1);
       }
     }
@@ -124,13 +140,13 @@ void Selection<string>::update_input(Cursor* cursor, World* world)
     {
       on_click();
     }
-    cursor->set_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
+    world->set_cursor_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
     m_highlighted_item = m_focus_x + m_focus_y * m_columns;
   }
 }
 
 template <>
-void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
+void Selection<Player_Summary>::update_input(World* world)
 {
   m_show_cursor = m_queue_show_cursor;
   m_show_menu = m_queue_show_menu;
@@ -157,6 +173,10 @@ void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
       long m_focus_y_temp{max(m_focus_y - 1, static_cast<long>(0))};
       if(m_focus_x + m_focus_y_temp * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_y_temp != m_focus_y)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_y = max(m_focus_y - 1, static_cast<long>(0));
         if(m_focus_y < m_display_start)
         {
@@ -170,6 +190,10 @@ void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
       long m_focus_y_temp{min(m_focus_y + 1, m_max_rows - 1)};
       if(m_focus_x + m_focus_y_temp * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_y_temp != m_focus_y)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_y = min(m_focus_y + 1, m_max_rows - 1);
         if(m_focus_y > m_display_start + m_display_rows - 1)
         {
@@ -183,6 +207,10 @@ void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
       long m_focus_x_temp{max(m_focus_x - 1, static_cast<long>(0))};
       if(m_focus_x_temp + m_focus_y * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_x_temp != m_focus_x)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_x = max(m_focus_x - 1, static_cast<long>(0));
       }
     }
@@ -192,6 +220,10 @@ void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
       long m_focus_x_temp{min(m_focus_x + 1, m_columns - 1)};
       if(m_focus_x_temp + m_focus_y * m_columns < static_cast<long>(m_choices.size()))
       {
+        if(m_focus_x_temp != m_focus_x)
+        {
+          world->play_global_sound("Cursor");
+        }
         m_focus_x = min(m_focus_x + 1, m_columns - 1);
       }
     }
@@ -200,13 +232,13 @@ void Selection<Player_Summary>::update_input(Cursor* cursor, World* world)
     {
       on_click();
     }
-    cursor->set_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
+    world->set_cursor_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
     m_highlighted_item = m_focus_x + m_focus_y * m_columns;
   }
 }
 
 template <>
-void Selection<string>::render(const vector<Fnt*> & fonts, World* world, const string & party_member_name) const
+void Selection<string>::render(World* world, const string & party_member_name) const
 {
   if(m_show_menu == true)
   {
@@ -222,20 +254,20 @@ void Selection<string>::render(const vector<Fnt*> & fonts, World* world, const s
       {
         if(m_render_mode == "Normal")
         {
-          render_item(x, y, item_index, fonts[0]);
+          render_item(world, 0, x, y, item_index);
         }
         else if(m_render_mode == "Items")
         {
-          world->render_item(x, y, fonts[0], item_index, m_spacing_x);
+          world->render_item(x, y, 0, item_index, m_spacing_x);
         }
         else if(m_render_mode == "Key Items")
         {
-          world->render_key_item(x, y, fonts[0], item_index);
+          world->render_key_item(x, y, 0, item_index);
         }
         else if(m_render_mode == "Stats")
         {
-          render_item(x, y, item_index, fonts[0]);
-          world->render_stat(x, y, fonts[0], item_index, m_spacing_x, party_member_name);
+          render_item(world, 0, x, y, item_index);
+          world->render_stat(x, y, 0, item_index, m_spacing_x, party_member_name);
         }
         x += m_spacing_x;
         ++item_index;

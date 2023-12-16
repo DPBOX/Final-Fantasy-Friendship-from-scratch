@@ -38,6 +38,7 @@ void Cursor::update()
 
 void Cursor::set_destination(const long & end_x, const long & end_y)
 {
+  m_destination_set = true;
   if(m_calculated_velocity == false)
   {
     m_end_x = end_x + CURSOR_PADDING_X;
@@ -68,7 +69,11 @@ void Cursor::set_destination(const long & end_x, const long & end_y)
 
 void Cursor::finish()
 {
-  set_destination(CURSOR_START_X, CURSOR_START_Y);
+  if(m_destination_set == false)
+  {
+    set_destination(CURSOR_START_X, CURSOR_START_Y);
+  }
+  m_destination_set = false;
 }
 
 void Cursor::render() const

@@ -1,6 +1,7 @@
 #ifndef WORLD_H
 #define WORLD_H
 
+#include "Cursor.h"
 #include "LTimer.h"
 #include "UI.h"
 
@@ -9,7 +10,7 @@ class Fnt;
 struct Character_Base_Stats
 {
   explicit Character_Base_Stats(){}
-  explicit Character_Base_Stats(const long & base_hp, const long & base_mp, const long & defense, const long & resistance, const long & evasion, const long & magic_evasion, const long & critical, const long spirit_growth[MAX_LEVEL], const long stamina_growth[MAX_LEVEL], const long strength_growth[MAX_LEVEL], const long intellect_growth[MAX_LEVEL]) :
+  explicit Character_Base_Stats(const long & base_hp, const long & base_mp, const long & defense, const long & resistance, const long & evasion, const long & magic_evasion, const long & critical, const array<long, MAX_LEVEL> & spirit_growth, const array<long, MAX_LEVEL> & stamina_growth, const array<long, MAX_LEVEL> & strength_growth, const array<long, MAX_LEVEL> & intellect_growth) :
                        m_base_hp(base_hp),
                        m_base_mp(base_mp),
                        m_defense(defense),
@@ -21,8 +22,6 @@ struct Character_Base_Stats
                        m_stamina_growth(stamina_growth),
                        m_strength_growth(strength_growth),
                        m_intellect_growth(intellect_growth){}
-  Character_Base_Stats(const Character_Base_Stats & obj) = default;
-  Character_Base_Stats & operator =(const Character_Base_Stats & obj) = default;
   const long m_base_hp{10};
   const long m_base_mp{10};
   const long m_defense{10};
@@ -30,10 +29,10 @@ struct Character_Base_Stats
   const long m_evasion{10};
   const long m_magic_evasion{10};
   const long m_critical{10};
-  const long* m_spirit_growth{nullptr};
-  const long* m_stamina_growth{nullptr};
-  const long* m_strength_growth{nullptr};
-  const long* m_intellect_growth{nullptr};
+  const array<long, MAX_LEVEL> m_spirit_growth{};
+  const array<long, MAX_LEVEL> m_stamina_growth{};
+  const array<long, MAX_LEVEL> m_strength_growth{};
+  const array<long, MAX_LEVEL> m_intellect_growth{};
 };
 
 struct Enemy_Base_Stats
@@ -54,8 +53,6 @@ struct Enemy_Base_Stats
                        m_level(level),
                        m_attack(attack),
                        m_accuracy(accuracy){}
-  Enemy_Base_Stats(const Enemy_Base_Stats & obj) = default;
-  Enemy_Base_Stats & operator =(const Enemy_Base_Stats & obj) = default;
   const long m_max_hp{10};
   const long m_max_mp{10};
   const long m_defense{10};
@@ -114,8 +111,6 @@ class Stats
                    m_mp_max(stats.m_max_mp),
                    m_hp_now(m_hp_max),
                    m_mp_now(m_mp_max){}
-    Stats(const Stats & obj) = default;
-    Stats & operator =(const Stats & obj) = default;
     virtual ~Stats(){}
     
     virtual void update_stats(){}
@@ -154,8 +149,6 @@ class Player_Stats : public Stats
 {
   public:
     explicit Player_Stats(const Character_Base_Stats & stats, const long & level = 1, const long & exp = 0);
-    Player_Stats(const Player_Stats & obj) = default;
-    Player_Stats & operator =(const Player_Stats & obj) = default;
     
     virtual void update_stats();
     virtual void give_exp(const long & exp);
@@ -168,10 +161,10 @@ class Player_Stats : public Stats
     long m_base_hp{10};
     long m_base_mp{10};
 
-    const long* m_spirit_growth{nullptr};
-    const long* m_stamina_growth{nullptr};
-    const long* m_strength_growth{nullptr};
-    const long* m_intellect_growth{nullptr};
+    array<long, MAX_LEVEL> m_spirit_growth{};
+    array<long, MAX_LEVEL> m_stamina_growth{};
+    array<long, MAX_LEVEL> m_strength_growth{};
+    array<long, MAX_LEVEL> m_intellect_growth{};
 
     long m_exp{0};
     long m_current_level_starting_exp{0};
@@ -316,8 +309,8 @@ class Party_Member
     bool get_row() const;
     long get_soul_break_level() const;
     void render_portrait(const bool & size, const long & x, const long & y) const;
-    void set_front_row();
-    void set_back_row();
+    bool set_front_row();
+    bool set_back_row();
     void swap_party_members(const string & name1, const string & name2);
     void give_member_exp(const long & exp);
     void level_up();
@@ -364,8 +357,8 @@ class Party
     long get_member_soul_break_level(const string & name) const;
     void render_member_portrait(const string & name, const bool & size, const long & x, const long & y) const;
     long get_size() const;
-    void set_member_front_row(const string & name);
-    void set_member_back_row(const string & name);
+    bool set_member_front_row(const string & name);
+    bool set_member_back_row(const string & name);
     void swap_party_members(const string & name1, const string & name2);
 
   private:
@@ -381,9 +374,13 @@ class World
     ~World();
 
     void update();
-    void render_item(const long & x, const long & y, Fnt* font, const long & item_index, const long & width) const;
-    void render_key_item(const long & x, const long & y, Fnt* font, const long & item_index) const;
-    void render_stat(const long & x, const long & y, Fnt* font, const long & item_index, const long & width, const string & name) const;
+    void render_item(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
+    void render_key_item(const long & x, const long & y, const long & font_no, const long & item_index) const;
+    void render_stat(const long & x, const long & y, const long & font_no, const long & item_index, const long & width, const string & name) const;
+    void render_cursor() const;
+    void render_text_center(const long & font_no, const string & text, const long & y_pos, const long & alpha = 255) const;
+    void render_text(const long & font_no, const string & text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
+    void render_letter(const long & font_no, const long & x, const long & y, const char & id, const long & alpha = 255) const;
     vector<string> get_items() const;
     vector<string> get_key_items() const;
     Item_Slot get_item(const long & index) const;
@@ -402,6 +399,11 @@ class World
     long get_money() const;
     void pause_time();
     void unpause_time();
+    void set_cursor_destination(const long & end_x, const long & end_y);
+    long get_font_height(const long & font_no) const;
+    long get_word_width(const long & font_no, const string & text) const;
+    long get_char_width(const long & font_no, const char & text) const;
+    void play_global_sound(const string & name) const;
     
     string get_party_member_name(const long & index) const;
     string get_party_member_species(const string & index) const;
@@ -416,8 +418,8 @@ class World
     long get_party_member_soul_break_level(const string & index) const;
     void render_party_member_portrait(const string & index, const bool & size, const long & x, const long & y) const;
     long get_party_size() const;
-    void set_party_member_front_row(const string & index);
-    void set_party_member_back_row(const string & index);
+    bool set_party_member_front_row(const string & index);
+    bool set_party_member_back_row(const string & index);
     void swap_party_members(const string & name1, const string & name2);
     
   private:
@@ -427,6 +429,10 @@ class World
     vector<Item> m_key_items{};
     Texture2D m_item_icons_tex{};
     Party m_party{};
+    vector<Fnt*> m_fonts{};
+    Cursor* m_cursor{nullptr};
+    vector<Sound> m_global_sounds{};
+    vector<string> m_global_sound_names{};
 };
 
 #endif

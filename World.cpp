@@ -608,14 +608,18 @@ void Party_Member::render_portrait(const bool & size, const long & x, const long
   }
 }
 
-void Party_Member::set_front_row()
+bool Party_Member::set_front_row()
 {
+  bool ret{m_row == false};
   m_row = true;
+  return ret;
 }
 
-void Party_Member::set_back_row()
+bool Party_Member::set_back_row()
 {
+  bool ret{m_row == true};
   m_row = false;
+  return ret;
 }
 
 void Party_Member::give_member_exp(const long & exp)
@@ -810,30 +814,30 @@ long Party::get_size() const
   return m_members.size();
 }
 
-void Party::set_member_front_row(const string & name)
+bool Party::set_member_front_row(const string & name)
 {
   for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
   {
     if(m_members[i]->get_name() == name)
     {
-      m_members[i]->set_front_row();
-      return;
+      return m_members[i]->set_front_row();
     }
   }
   crash("Error: Tried to get invalid party member " + name + ".");
+  return false;
 }
 
-void Party::set_member_back_row(const string & name)
+bool Party::set_member_back_row(const string & name)
 {
   for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
   {
     if(m_members[i]->get_name() == name)
     {
-      m_members[i]->set_back_row();
-      return;
+      return m_members[i]->set_back_row();
     }
   }
   crash("Error: Tried to get invalid party member " + name + ".");
+  return false;
 }
 
 void Party::swap_party_members(const string & name1, const string & name2)
@@ -877,6 +881,16 @@ Party::~Party()
 
 World::World()
 {
+  m_cursor = new Cursor;
+  ++mem;
+  
+  m_fonts.push_back(new Fnt);
+  ++mem;
+  m_fonts.push_back(new Fnt{HEADING_FONT});
+  ++mem;
+  m_fonts.push_back(new Fnt{CHARACTER_TITLE_FONT});
+  ++mem;
+
   m_time.start();
   add_item("Bronze Sword");
   add_item("Heal Potion");
@@ -892,34 +906,67 @@ World::World()
   UnloadImage(image);
   
   m_party.add_party_member(TEMPEST_SHADOW_INFO);
+  
+  Wave wave{LoadWaveFromMemory(".wav", CURSOR_SOUND.m_data, CURSOR_SOUND.m_size)};
+  m_global_sounds.push_back(LoadSoundFromWave(wave));
+  UnloadWave(wave);
+  Wave wave2{LoadWaveFromMemory(".wav", CONFIRM_SOUND.m_data, CONFIRM_SOUND.m_size)};
+  m_global_sounds.push_back(LoadSoundFromWave(wave2));
+  UnloadWave(wave2);
+  Wave wave3{LoadWaveFromMemory(".wav", BACK_SOUND.m_data, BACK_SOUND.m_size)};
+  m_global_sounds.push_back(LoadSoundFromWave(wave3));
+  UnloadWave(wave3);
+  Wave wave4{LoadWaveFromMemory(".wav", BUZZER_SOUND.m_data, BUZZER_SOUND.m_size)};
+  m_global_sounds.push_back(LoadSoundFromWave(wave4));
+  UnloadWave(wave4);
+  
+  m_global_sound_names.push_back(CURSOR_SOUND.m_name);
+  m_global_sound_names.push_back(CONFIRM_SOUND.m_name);
+  m_global_sound_names.push_back(BACK_SOUND.m_name);
+  m_global_sound_names.push_back(BUZZER_SOUND.m_name);
 }
 
 World::~World()
 {
   UnloadTexture(m_item_icons_tex);
+  delete m_cursor;
+  m_cursor = nullptr;
+  --mem;
+  for(long i{0}; i < static_cast<long>(m_fonts.size()); ++i)
+  {
+    delete m_fonts[i];
+    m_fonts[i] = nullptr;
+    --mem;
+  }
+  for(long i{0}; i < static_cast<long>(m_global_sounds.size()); ++i)
+  {
+    UnloadSound(m_global_sounds[i]);
+  }
 }
 
 void World::update()
 {
   m_party.update_stats();
+  m_cursor->finish();
+  m_cursor->update();
 }
 
-void World::render_item(const long & x, const long & y, Fnt* font, const long & item_index, const long & width) const
+void World::render_item(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
 {
   if(item_index >= 0 && item_index < static_cast<long>(m_items.size()))
   {
     long current_pos{x};
     if(m_items[item_index].get_item().m_icon != 0)
     {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_index].get_item().m_icon), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (font->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_index].get_item().m_icon), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
       current_pos += ICON_WIDTH;
     }
 
     string text{m_items[item_index].get_item().m_name};
     while(text != "")
     {
-      font->render_letter(current_pos, y, text[0]);
-      current_pos += font->get_char_width(text[0]);
+      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_no]->get_char_width(text[0]);
       text.erase(text.begin());
     }
 
@@ -927,14 +974,14 @@ void World::render_item(const long & x, const long & y, Fnt* font, const long & 
     text = "x" + to_string(m_items[item_index].get_count());
     while(text != "")
     {
-      font->render_letter(current_pos, y, text[0]);
-      current_pos += font->get_char_width(text[0]);
+      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_no]->get_char_width(text[0]);
       text.erase(text.begin());
     }
   }
 }
 
-void World::render_key_item(const long & x, const long & y, Fnt* font, const long & item_index) const
+void World::render_key_item(const long & x, const long & y, const long & font_no, const long & item_index) const
 {
   if(item_index >= 0 && item_index < static_cast<long>(m_key_items.size()))
   {
@@ -942,14 +989,14 @@ void World::render_key_item(const long & x, const long & y, Fnt* font, const lon
     string text{m_key_items[item_index].m_name};
     while(text != "")
     {
-      font->render_letter(current_pos, y, text[0]);
-      current_pos += font->get_char_width(text[0]);
+      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_no]->get_char_width(text[0]);
       text.erase(text.begin());
     }
   }
 }
 
-void World::render_stat(const long & x, const long & y, Fnt* font, const long & item_index, const long & width, const string & name) const
+void World::render_stat(const long & x, const long & y, const long & font_no, const long & item_index, const long & width, const string & name) const
 {
   long current_pos{static_cast<long>(x + width * STAT_LOCATION_FRACTION)};
   string text;
@@ -998,9 +1045,50 @@ void World::render_stat(const long & x, const long & y, Fnt* font, const long & 
 
   while(text != "")
   {
-    font->render_letter(current_pos, y, text[0]);
-    current_pos += font->get_char_width(text[0]);
+    m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+    current_pos += m_fonts[font_no]->get_char_width(text[0]);
     text.erase(text.begin());
+  }
+}
+
+void World::render_cursor() const
+{
+  m_cursor->render();
+}
+
+void World::render_text_center(const long & font_no, const string & text, const long & y_pos, const long & alpha) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  else
+  {
+    m_fonts[font_no]->render_text_center(text, y_pos, alpha);
+  }
+}
+
+void World::render_text(const long & font_no, const string & text, const long & x_pos, const long & y_pos, const long & alpha) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  else
+  {
+    m_fonts[font_no]->render_text(text, x_pos, y_pos, alpha);
+  }
+}
+
+void World::render_letter(const long & font_no, const long & x, const long & y, const char & id, const long & alpha) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  else
+  {
+    m_fonts[font_no]->render_letter(x, y, id, alpha);
   }
 }
 
@@ -1204,6 +1292,51 @@ void World::unpause_time()
   m_time.unpause();
 }
 
+void World::set_cursor_destination(const long & end_x, const long & end_y)
+{
+  m_cursor->set_destination(end_x, end_y);
+}
+
+long World::get_font_height(const long & font_no) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  return m_fonts[font_no]->get_height();
+}
+
+long World::get_word_width(const long & font_no, const string & text) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  return m_fonts[font_no]->get_word_width(text);
+}
+
+long World::get_char_width(const long & font_no, const char & text) const
+{
+  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
+  {
+    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
+  }
+  return m_fonts[font_no]->get_char_width(text);
+}
+
+void World::play_global_sound(const string & name) const
+{
+  for(long i{0}; i < static_cast<long>(m_global_sounds.size()); ++i)
+  {
+    if(m_global_sound_names[i] == name)
+    {
+      PlaySound(m_global_sounds[i]);
+      return;
+    }
+  }
+  crash("Error: Global sound effect \"" + name + "\" doesn't exist.");
+}
+
 string World::get_party_member_name(const long & index) const
 {
   return m_party.get_member_name(index);
@@ -1269,14 +1402,14 @@ long World::get_party_size() const
   return m_party.get_size();
 }
 
-void World::set_party_member_front_row(const string & index)
+bool World::set_party_member_front_row(const string & index)
 {
-  m_party.set_member_front_row(index);
+  return m_party.set_member_front_row(index);
 }
 
-void World::set_party_member_back_row(const string & index)
+bool World::set_party_member_back_row(const string & index)
 {
-  m_party.set_member_back_row(index);
+  return m_party.set_member_back_row(index);
 }
 
 void World::swap_party_members(const string & name1, const string & name2)

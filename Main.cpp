@@ -19,8 +19,6 @@ int main(int argc, char* args[])
   // Main game loop
   while(WindowShouldClose() == false)   // Detect window close button or ESC key
   {
-    music_op(Music_Command_Params{Music_Command::Update});
-      
     // Update
     game->update();
 

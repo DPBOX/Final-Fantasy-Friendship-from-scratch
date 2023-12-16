@@ -14,9 +14,9 @@ class State_Machine
     ~State_Machine();
 
     void update();
-    void update_input(State_Machine* machine, Cursor* cursor, World* world);
+    void update_input(State_Machine* machine, World* world);
     void change_state(World* world);    //State changer
-    void render(World* world, const vector<Fnt*> & fonts) const;
+    void render(World* world) const;
     
     // checks if the current state is an exit state
     bool check_exit() const;
@@ -46,11 +46,6 @@ class State_Machine
     void set_next_state(const state_list & new_state, const string & selected_party_member_name = "NULL");
     
     string m_selected_party_member_name{"NULL"};
-    
-    Sound m_cursor_sound{};
-    Sound m_confirm_sound{};
-    Sound m_back_sound{};
-    Sound m_buzzer_sound{};
 };
 
 //Game state base class
@@ -62,8 +57,8 @@ class State_Machine::Machine_State
     Machine_State(const Machine_State & obj) = delete;
     Machine_State & operator =(const Machine_State & obj) = delete;
     virtual void update() = 0;
-    virtual void update_input(State_Machine* machine, Cursor* cursor, World* world) = 0;
-    virtual void render(World* world, const vector<Fnt*> & fonts) const = 0;
+    virtual void update_input(State_Machine* machine, World* world) = 0;
+    virtual void render(World* world) const = 0;
     virtual ~Machine_State(){};
     virtual bool root_menu_cursor_shown() const;
 };
@@ -79,11 +74,11 @@ class State_Machine::Front_Menu : private State_Machine::Machine_State
     
     //Main Loop Functons
     virtual void update(){}
-    virtual void update_input(State_Machine* machine, Cursor* cursor, World* world);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(State_Machine* machine, World* world);
+    virtual void render(World* world) const;
     
     virtual bool root_menu_cursor_shown() const;
-    string split_map_name_text(const bool & line_number, Fnt* font) const;
+    string split_map_name_text(const bool & line_number) const;
     
     Panel* m_gold{nullptr};
     Panel* m_map{nullptr};
@@ -109,8 +104,8 @@ class State_Machine::Item_Menu : private State_Machine::Machine_State
     
     //Main Loop Functons
     virtual void update(){}
-    virtual void update_input(State_Machine* machine, Cursor* cursor, World* world);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(State_Machine* machine, World* world);
+    virtual void render(World* world) const;
     
     Panel* m_switch{nullptr};
     Panel* m_item_text{nullptr};
@@ -135,8 +130,8 @@ class State_Machine::Status_Menu : private State_Machine::Machine_State
     
     //Main Loop Functons
     virtual void update(){}
-    virtual void update_input(State_Machine* machine, Cursor* cursor, World* world);
-    virtual void render(World* world, const vector<Fnt*> & fonts) const;
+    virtual void update_input(State_Machine* machine, World* world);
+    virtual void render(World* world) const;
     
     Texture2D m_panel_texture{};
     string m_character_name{"NULL"};

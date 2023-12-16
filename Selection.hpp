@@ -2,13 +2,13 @@
 #define SELECTION_HPP
 
 template <typename T>
-void Selection<T>::render_item(const long & x, const long & y, const long & item_index, Fnt* font) const{}
+void Selection<T>::render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const{}
 
 template <typename T>
-void Selection<T>::update_input(Cursor* cursor, World* world){}
+void Selection<T>::update_input(World* world){}
 
 template <typename T>
-void Selection<T>::render(const vector<Fnt*> & fonts, World* world, const string & party_member_name) const{}
+void Selection<T>::render(World* world, const string & party_member_name) const{}
 
 template <typename T>
 void Selection<T>::set_position(const long & x, const long & y)

@@ -1,15 +1,16 @@
 #ifndef MAIN_H
 #define MAIN_H
-//#define _GLIBCXX_DEBUG
+#define _GLIBCXX_DEBUG
 using namespace std;
 
 #include "raylib.h"
-#include <iostream>
+//#include <iostream>
 #include <string>
 #include <ctime>
 #include <cmath>
 #include <vector>
 #include <variant>
+#include <array>
 
 //Screen dimension constants
 const long SCREEN_WIDTH{480};
