@@ -113,6 +113,7 @@ class State_Machine::Item_Menu : private State_Machine::Machine_State
     Panel* m_item_list{nullptr};
     Selection<string>* m_category{nullptr};
     Selection<string>* m_items{nullptr};
+    Selection<string>* m_equipment{nullptr};
     Selection<string>* m_key_items{nullptr};
     string m_top_bar_text{"Items"};
     Texture2D m_panel_texture{};

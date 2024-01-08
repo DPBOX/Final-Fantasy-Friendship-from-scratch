@@ -347,7 +347,7 @@ void Textbox::render(World* world) const
 
 long Textbox::get_selected_item()
 {
-  return m_selection->get_selected_item();
+  return m_selection->get_highlighted_item();
 }
 
 bool Textbox::dead()

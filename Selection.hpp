@@ -36,16 +36,9 @@ string Selection<T>::c_get_options() const
 }
 
 template <typename T>
-long Selection<T>::get_selected_item()
+string Selection<T>::get_highlighted_item_string() const
 {
-  if(m_show_cursor == true)
-  {
-    long selected_item{m_selected_item};
-    m_selected_item = -1;
-    return selected_item;
-  }
-  crash("Error: Tried to get the selected option in inactive selection menu \"" + c_get_options() + "\".");
-  return -1;
+  return "NULL";
 }
   
 template <typename T>
@@ -98,12 +91,6 @@ template <typename T>
 bool Selection<T>::menu_shown() const
 {
   return m_show_menu;
-}
-
-template <typename T>
-void Selection<T>::on_click()
-{
-  m_selected_item = m_focus_x + m_focus_y * m_columns;
 }
 
 #endif

@@ -21,6 +21,11 @@ string Stat_Modifier::get_stat() const
   return m_stat;
 }
 
+long Stat_Modifier::get_replace_modifier() const
+{
+  return m_replace_modifier;
+}
+
 long Stat_Modifier::get_add_modifier() const
 {
   return m_add_modifier;
@@ -108,29 +113,33 @@ long Stats::get_unmodified_stat(const string & stat) const
   {
     return m_level;
   }
+  else if(stat == "Strength")
+  {
+    return m_strength;
+  }
+  else if(stat == "Attack")
+  {
+    return m_attack;
+  }
+  else if(stat == "Speed")
+  {
+    return 0;
+  }
   else if(stat == "Defense")
   {
     return m_defense;
+  }
+  else if(stat == "Intellect")
+  {
+    return m_intellect;
   }
   else if(stat == "Resistance")
   {
     return m_resistance;
   }
-  else if(stat == "Evasion")
+  else if(stat == "Stamina")
   {
-    return m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    return m_magic_evasion;
-  }
-  else if(stat == "Critical")
-  {
-    return m_critical;
-  }
-  else if(stat == "Attack")
-  {
-    return m_attack;
+    return m_stamina;
   }
   else if(stat == "Accuracy")
   {
@@ -140,17 +149,17 @@ long Stats::get_unmodified_stat(const string & stat) const
   {
     return m_spirit;
   }
-  else if(stat == "Stamina")
+  else if(stat == "Critical")
   {
-    return m_stamina;
+    return m_critical;
   }
-  else if(stat == "Strength")
+  else if(stat == "Evasion")
   {
-    return m_strength;
+    return m_evasion;
   }
-  else if(stat == "Intellect")
+  else if(stat == "Magic Evasion")
   {
-    return m_intellect;
+    return m_magic_evasion;
   }
   else
   {
@@ -173,6 +182,14 @@ long Stats::get_stat(const string & stat) const
   {
     unmodified_stat = m_mp_max;
   }
+  else if(stat == "Strength")
+  {
+    unmodified_stat = m_strength;
+  }
+  else if(stat == "Attack")
+  {
+    unmodified_stat = m_attack;
+  }
   else if(stat == "Speed")
   {
     unmodified_stat = 0;
@@ -181,25 +198,17 @@ long Stats::get_stat(const string & stat) const
   {
     unmodified_stat = m_defense;
   }
+  else if(stat == "Intellect")
+  {
+    unmodified_stat = m_intellect;
+  }
   else if(stat == "Resistance")
   {
     unmodified_stat = m_resistance;
   }
-  else if(stat == "Evasion")
+  else if(stat == "Stamina")
   {
-    unmodified_stat = m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    unmodified_stat = m_magic_evasion;
-  }
-  else if(stat == "Critical")
-  {
-    unmodified_stat = m_critical;
-  }
-  else if(stat == "Attack")
-  {
-    unmodified_stat = m_attack;
+    unmodified_stat = m_stamina;
   }
   else if(stat == "Accuracy")
   {
@@ -209,21 +218,32 @@ long Stats::get_stat(const string & stat) const
   {
     unmodified_stat = m_spirit;
   }
-  else if(stat == "Stamina")
+  else if(stat == "Critical")
   {
-    unmodified_stat = m_stamina;
+    unmodified_stat = m_critical;
   }
-  else if(stat == "Strength")
+  else if(stat == "Evasion")
   {
-    unmodified_stat = m_strength;
+    unmodified_stat = m_evasion;
   }
-  else if(stat == "Intellect")
+  else if(stat == "Magic Evasion")
   {
-    unmodified_stat = m_intellect;
+    unmodified_stat = m_magic_evasion;
   }
   else
   {
     crash("Error: Tried to get invalid stat \"" + stat + "\".");
+  }
+
+  for(long i{0}; i < static_cast<long>(m_modifiers.size()); ++i)
+  {
+    if(m_modifiers[i].get_stat() == stat)
+    {
+      if(m_modifiers[i].get_type() == "Replace")
+      {
+        return m_modifiers[i].get_replace_modifier();
+      }
+    }
   }
 
   for(long i{0}; i < static_cast<long>(m_modifiers.size()); ++i)
@@ -247,7 +267,7 @@ long Stats::get_stat(const string & stat) const
       }
     }
   }
-  return modified_stat + .5;
+  return modified_stat;
 }
 
 Player_Stats::Player_Stats(const Character_Base_Stats & stats, const long & level, const long & exp)
@@ -364,6 +384,10 @@ long Player_Stats::get_unmodified_stat(const string & stat) const
     else if(stat == "Next Level Total EXP")
   {
     return m_current_level_starting_exp + exp_formula();
+  }
+  else if(stat == "Speed")
+  {
+    return 0;
   }
   else if(stat == "Defense")
   {
@@ -511,6 +535,120 @@ long Player_Stats::exp_formula() const
 {
   double pow_i{2.4 + EXP_INFLATION / 100.0};
   return EXP_BASE * pow(m_level + 4, pow_i) / pow(5, pow_i);
+}
+
+string Item::get_name() const
+{
+  return m_name;
+}
+
+string Item::get_type() const
+{
+  return m_type;
+}
+
+long Item::get_icon() const
+{
+  return m_icon;
+}
+
+long Item::get_count() const
+{
+  return -1;
+}
+
+Consumable_Item::Consumable_Item(const string & name, const string & description)
+{
+  m_name = name;
+  m_type = "Consumable Item";
+  m_description = description;
+  m_icon = CONSUMABLE_ITEM_ICON;
+  m_count = 1;
+}
+
+string Consumable_Item::get_description() const
+{
+  return m_description;
+}
+
+void Consumable_Item::increment_count()
+{
+  ++m_count;
+}
+
+void Consumable_Item::decrement_count()
+{
+  --m_count;
+}
+
+long Consumable_Item::get_count() const
+{
+  return m_count;
+}
+
+Key_Item::Key_Item(const string & name, const string & description)
+{
+  m_name = name;
+  m_type = "Key Item";
+  m_description = description;
+  m_icon = KEY_ITEM_ICON;
+}
+
+string Key_Item::get_description() const
+{
+  return m_description;
+}
+
+Equipment::Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by, const string & equipped_by)
+{
+  m_name = name;
+  m_type = type;
+  m_description = description;
+  m_icon = icon;
+  m_count = 1;
+  m_stats = stats;
+  m_usable_by = usable_by;
+  m_equipped_by = equipped_by;
+}
+
+string Equipment::get_description() const
+{
+  string next{""};
+  for(long i{0}; i < m_stats.size(); ++i)
+  {
+    if(m_stats[i].get_type() == "Add")
+    {
+      next += (m_stats[i].get_add_modifier() < 0 ? " " : " +") + to_string(m_stats[i].get_add_modifier()) + " " + m_stats[i].get_stat() + ",";
+    }
+    else if(m_stats[i].get_type() == "Replace")
+    {
+      next += " " + to_string(m_stats[i].get_replace_modifier()) + " " + m_stats[i].get_stat() + ",";
+    }
+    if(m_stats[i].get_type() == "Multiply")
+    {
+      next += " x" + to_string(m_stats[i].get_multiply_modifier()) + " " + m_stats[i].get_stat() + ",";
+    }
+  }
+  if(next.empty() == false)
+  {
+    next.pop_back();
+  }
+  return m_description + next;
+}
+
+void Equipment::increment_count()
+{
+  ++m_count;
+}
+
+void Equipment::decrement_count()
+{
+  --m_count;
+}
+
+long Equipment::get_count() const
+{
+  return m_count;
 }
 
 Party_Member::Party_Member(const Player_Info & player)
@@ -881,6 +1019,8 @@ Party::~Party()
 
 World::World()
 {
+  #include "Consts/Item_Consts.h"
+
   m_cursor = new Cursor;
   ++mem;
   
@@ -892,14 +1032,14 @@ World::World()
   ++mem;
 
   m_time.start();
-  add_item("Bronze Sword");
-  add_item("Heal Potion");
-  add_item("Heal Potion");
+  add_equipment("Twilight Steel");
+  add_equipment("Leather Cap");
+  add_equipment("Leather Armor");
   add_item("Heal Potion");
   add_item("Money Bag");
   add_item("Money Bag");
   add_item("Money Bag");
-  add_item("Mysterious Torque");
+  add_key_item("Old Bone");
 
   Image image{LoadImageFromMemory(".png", binary_Image_inventory_icons_png_start, reinterpret_cast<long>(&binary_Image_inventory_icons_png_size))};
   m_item_icons_tex = LoadTextureFromImage(image);
@@ -942,6 +1082,30 @@ World::~World()
   {
     UnloadSound(m_global_sounds[i]);
   }
+  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
+  {
+    delete m_items[i];
+    m_items[i] = nullptr;
+    --mem;
+  }
+  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
+  {
+    delete m_key_items[i];
+    m_key_items[i] = nullptr;
+    --mem;
+  }
+  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  {
+    delete m_equipment[i];
+    m_equipment[i] = nullptr;
+    --mem;
+  }
+  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  {
+    delete m_item_database[i];
+    m_item_database[i] = nullptr;
+    --mem;
+  }
 }
 
 void World::update()
@@ -956,13 +1120,10 @@ void World::render_item(const long & x, const long & y, const long & font_no, co
   if(item_index >= 0 && item_index < static_cast<long>(m_items.size()))
   {
     long current_pos{x};
-    if(m_items[item_index].get_item().m_icon != 0)
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_index].get_item().m_icon), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-    }
+    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_index]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    current_pos += ICON_WIDTH;
 
-    string text{m_items[item_index].get_item().m_name};
+    string text{m_items[item_index]->get_name()};
     while(text != "")
     {
       m_fonts[font_no]->render_letter(current_pos, y, text[0]);
@@ -971,7 +1132,7 @@ void World::render_item(const long & x, const long & y, const long & font_no, co
     }
 
     current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-    text = "x" + to_string(m_items[item_index].get_count());
+    text = "x" + to_string(m_items[item_index]->get_count());
     while(text != "")
     {
       m_fonts[font_no]->render_letter(current_pos, y, text[0]);
@@ -986,7 +1147,37 @@ void World::render_key_item(const long & x, const long & y, const long & font_no
   if(item_index >= 0 && item_index < static_cast<long>(m_key_items.size()))
   {
     long current_pos{x};
-    string text{m_key_items[item_index].m_name};
+    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_key_items[item_index]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    current_pos += ICON_WIDTH;
+
+    string text{m_key_items[item_index]->get_name()};
+    while(text != "")
+    {
+      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_no]->get_char_width(text[0]);
+      text.erase(text.begin());
+    }
+  }
+}
+
+void World::render_equipment(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
+{
+  if(item_index >= 0 && item_index < static_cast<long>(m_equipment.size()))
+  {
+    long current_pos{x};
+    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_equipment[item_index]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    current_pos += ICON_WIDTH;
+
+    string text{m_equipment[item_index]->get_name()};
+    while(text != "")
+    {
+      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_no]->get_char_width(text[0]);
+      text.erase(text.begin());
+    }
+
+    current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
+    text = "x" + to_string(m_equipment[item_index]->get_count());
     while(text != "")
     {
       m_fonts[font_no]->render_letter(current_pos, y, text[0]);
@@ -1004,40 +1195,40 @@ void World::render_stat(const long & x, const long & y, const long & font_no, co
   switch(item_index)
   {
     case 0:
-      text = to_string(m_party.get_member_stat(name, "Strength"));
+      text = to_string(m_party.get_member_stat(name, "Strength")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Strength")) + ")";
       break;
     case 1:
-      text = to_string(m_party.get_member_stat(name, "Attack"));
+      text = to_string(m_party.get_member_stat(name, "Attack")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Attack")) + ")";
       break;
     case 3:
-      text = to_string(m_party.get_member_stat(name, "Speed"));
+      text = to_string(m_party.get_member_stat(name, "Speed")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Speed")) + ")";
       break;
     case 4:
-      text = to_string(m_party.get_member_stat(name, "Defense"));
+      text = to_string(m_party.get_member_stat(name, "Defense")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Defense")) + ")";
       break;
     case 6:
-      text = to_string(m_party.get_member_stat(name, "Intellect"));
+      text = to_string(m_party.get_member_stat(name, "Intellect")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Intellect")) + ")";
       break;
     case 7:
-      text = to_string(m_party.get_member_stat(name, "Resistance"));
+      text = to_string(m_party.get_member_stat(name, "Resistance")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Resistance")) + ")";
       break;
     case 9:
-      text = to_string(m_party.get_member_stat(name, "Stamina"));
+      text = to_string(m_party.get_member_stat(name, "Stamina")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Stamina")) + ")";
       break;
     case 10:
-      text = to_string(m_party.get_member_stat(name, "Accuracy"));
+      text = to_string(m_party.get_member_stat(name, "Accuracy")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Accuracy")) + ")";
       break;
     case 12:
-      text = to_string(m_party.get_member_stat(name, "Spirit"));
+      text = to_string(m_party.get_member_stat(name, "Spirit")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Spirit")) + ")";
       break;
     case 13:
-      text = to_string(m_party.get_member_stat(name, "Critical"));
+      text = to_string(m_party.get_member_stat(name, "Critical")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Critical")) + ")";
       break;
     case 15:
-      text = to_string(m_party.get_member_stat(name, "Evasion"));
+      text = to_string(m_party.get_member_stat(name, "Evasion")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Evasion")) + ")";
       break;
     case 16:
-      text = to_string(m_party.get_member_stat(name, "Magic Evasion"));
+      text = to_string(m_party.get_member_stat(name, "Magic Evasion")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Magic Evasion")) + ")";
       break;
     default:
       break;
@@ -1097,7 +1288,7 @@ vector<string> World::get_items() const
   vector<string> items;
   for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
   {
-    items.push_back(m_items[i].get_item().m_name);
+    items.push_back(m_items[i]->get_name());
   }
   return items;
 }
@@ -1107,39 +1298,32 @@ vector<string> World::get_key_items() const
   vector<string> key_items;
   for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
   {
-    key_items.push_back(m_key_items[i].m_name);
+    key_items.push_back(m_key_items[i]->get_name());
   }
   return key_items;
 }
 
-Item_Slot World::get_item(const long & index) const
+vector<string> World::get_equipment() const
 {
-  if(index >= 0 && index < static_cast<long>(m_items.size()))
+  vector<string> items;
+  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
   {
-    return m_items[index];
+    items.push_back(m_equipment[i]->get_name());
   }
-  return Item_Slot{ITEM_DATABASE[0]};
+  return items;
 }
 
-Item_Slot World::get_item(const string & name) const
+string World::get_item_description(const string & item_name) const
 {
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
+  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
   {
-    if(m_items[i].get_item().m_name == name)
+    if(m_item_database[i]->get_name() == item_name)
     {
-      return m_items[i];
+      return m_item_database[i]->get_description();
     }
   }
-  return Item_Slot{ITEM_DATABASE[0]};
-}
-
-Item World::get_key_item(const long & index) const
-{
-  if(index >= 0 && index < static_cast<long>(m_key_items.size()))
-  {
-    return m_key_items[index];
-  }
-  return ITEM_DATABASE[0];
+  crash("Error: Item \"" + item_name + "\" is not in the game.");
+  return "NULL";
 }
 
 bool World::has_items() const
@@ -1151,7 +1335,7 @@ bool World::has_item(const string & item) const
 {
   for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
   {
-    if(m_items[i].get_item().m_name == item)
+    if(m_items[i]->get_name() == item)
     {
       return true;
     }
@@ -1164,19 +1348,20 @@ void World::add_item(const string & item)
   //Does it already exist?
   for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
   {
-    if(m_items[i].get_item().m_name == item)
+    if(m_items[i]->get_name() == item)
     {
       //Yes it does, increase the count and exit
-      m_items[i].inc_count();
+      m_items[i]->increment_count();
       return;
     }
   }
   //No it doesn't, add it to the list
-  for(long i{0}; i < static_cast<long>(ITEM_DATABASE.size()); ++i)
+  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
   {
-    if(ITEM_DATABASE[i].m_name == item)
+    if(m_item_database[i]->get_type() == "Consumable Item" && m_item_database[i]->get_name() == item)
     {
-      m_items.push_back(Item_Slot{ITEM_DATABASE[i]});
+      m_items.push_back(new Consumable_Item{*dynamic_cast<Consumable_Item*>(m_item_database[i])});
+      ++mem;
     }
   }
 }
@@ -1185,31 +1370,21 @@ void World::remove_item(const string & item)
 {
   for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
   {
-    if(m_items[i].get_item().m_name == item)
+    if(m_items[i]->get_name() == item)
     {
-      if(m_items[i].get_count() > 0)
+      if(m_items[i]->get_count() > 0)
       {
-        m_items[i].dec_count();
-        if(m_items[i].get_count() == 0)
+        m_items[i]->decrement_count();
+        if(m_items[i]->get_count() == 0)
         {
           // erase it
+          delete m_items[i];
+          m_items[i] = nullptr;
           m_items.erase(m_items.begin() + i);
+          --mem;
           return;
         }
       }
-    }
-  }
-}
-
-void World::remove_item(const long & item_index)
-{
-  if(item_index >= 0 && item_index < static_cast<long>(m_items.size()) && m_items[item_index].get_count() > 0)
-  {
-    m_items[item_index].dec_count();
-    if(m_items[item_index].get_count() == 0)
-    {
-      // erase it
-      m_items.erase(m_items.begin() + item_index);
     }
   }
 }
@@ -1223,7 +1398,7 @@ bool World::has_key_item(const string & item) const
 {
   for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
   {
-    if(m_key_items[i].m_name == item)
+    if(m_key_items[i]->get_name() == item)
     {
       return true;
     }
@@ -1236,18 +1411,19 @@ void World::add_key_item(const string & item)
   //Does it already exist?
   for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
   {
-    if(m_key_items[i].m_name == item)
+    if(m_key_items[i]->get_name() == item)
     {
       //Yes it does, exit
       return;
     }
   }
   //No it doesn't, add it to the list
-  for(long i{0}; i < static_cast<long>(ITEM_DATABASE.size()); ++i)
+  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
   {
-    if(ITEM_DATABASE[i].m_name == item)
+    if(m_item_database[i]->get_type() == "Key Item" && m_item_database[i]->get_name() == item)
     {
-      m_key_items.push_back(ITEM_DATABASE[i]);
+      m_key_items.push_back(new Key_Item{*dynamic_cast<Key_Item*>(m_item_database[i])});
+      ++mem;
     }
   }
 }
@@ -1256,11 +1432,76 @@ void World::remove_key_item(const string & item)
 {
   for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
   {
-    if(m_key_items[i].m_name == item)
+    if(m_key_items[i]->get_name() == item)
     {
-      // erase it
+      delete m_key_items[i];
+      m_key_items[i] = nullptr;
       m_key_items.erase(m_key_items.begin() + i);
+      --mem;
       return;
+    }
+  }
+}
+
+bool World::has_equipment() const
+{
+  return !m_equipment.empty();
+}
+
+bool World::has_equipment(const string & item) const
+{
+  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  {
+    if(m_equipment[i]->get_name() == item)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+void World::add_equipment(const string & item)
+{
+  //Does it already exist?
+  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  {
+    if(m_equipment[i]->get_name() == item)
+    {
+      //Yes it does, increase the count and exit
+      m_equipment[i]->increment_count();
+      return;
+    }
+  }
+  //No it doesn't, add it to the list
+  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  {
+    if((m_item_database[i]->get_type() == "Weapon" || m_item_database[i]->get_type() == "Helm" || m_item_database[i]->get_type() == "Armor" || m_item_database[i]->get_type() == "Accessory") && m_item_database[i]->get_name() == item)
+    {
+      m_equipment.push_back(new Equipment{*dynamic_cast<Equipment*>(m_item_database[i])});
+      ++mem;
+    }
+  }
+}
+
+void World::remove_equipment(const string & item)
+{
+  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  {
+    if(m_equipment[i]->get_name() == item)
+    {
+      if(m_equipment[i]->get_count() > 0)
+      {
+        m_equipment[i]->decrement_count();
+        if(m_equipment[i]->get_count() == 0)
+        {
+          // erase it
+          delete m_equipment[i];
+          m_equipment[i] = nullptr;
+          m_equipment.erase(m_equipment.begin() + i);
+          --mem;
+          return;
+        }
+      }
     }
   }
 }
@@ -1415,4 +1656,9 @@ bool World::set_party_member_back_row(const string & index)
 void World::swap_party_members(const string & name1, const string & name2)
 {
   m_party.swap_party_members(name1, name2);
+}
+
+void World::add_party_member(const Player_Info & player)
+{
+  m_party.add_party_member(player);
 }

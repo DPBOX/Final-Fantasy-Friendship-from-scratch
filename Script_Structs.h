@@ -1,5 +1,6 @@
 #ifndef SCRIPT_STRUCTS_H
 #define SCRIPT_STRUCTS_H
+#include "World.h"
 
 enum class Direction{Up, Down, Left, Right};
 
@@ -55,6 +56,12 @@ struct Write_Map_Tile_Params
   long m_tile_to_change_x{0};
   long m_tile_to_change_y{0};
   long m_tile_to_change_to{0};
+};
+
+struct Party_Params
+{
+  explicit Party_Params(const Player_Info & member) : m_member(&member){}
+  const Player_Info* m_member{&TEMPEST_SHADOW_INFO};
 };
 
 struct Wait_Params
@@ -130,6 +137,7 @@ enum class Script_Op
   Has_Key_Item,
   Check_Entity_Position,
   Write_Map_Tile,
+  Join_Party,
   Wait,
   Fade_In_Screen,
   Fade_Out_Screen,
@@ -154,6 +162,7 @@ typedef variant
   Has_Key_Item_Params,
   Check_Entity_Position_Params,
   Write_Map_Tile_Params,
+  Party_Params,
   Wait_Params,
   Fade_Params,
   Fade_Screen_Params,

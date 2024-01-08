@@ -232,10 +232,20 @@ const vector<Map_Data> MAPS
     vector<Scr>
     {
       {{
-        {{{Script_Op::Talk, Say_Params{"Nightwish", "Knowing how your body performs under stress is the key to living a long and healthy life! Educate yourself with this list of figures that measure how your body."}}}}
+        {{{Script_Op::Say_Choices, Say_Choices_Params{"Hero", "Should Nightwish Join the party?", 8, -40, {"Yes", "No"}, {2, -1}}}}}
       }},
       {{
-        {{{Script_Op::Talk, Say_Params{"Gallus", "Should I join your party?"}}}}
+        {{{Script_Op::Say_Choices, Say_Choices_Params{"Hero", "Should Gallus Join the party?", 8, -40, {"Yes", "No"}, {3, -1}}}}}
+      }},
+      {{
+        {{{Script_Op::Say, Say_Params{"Hero", "Nightwish joined your party!", 8, -40}}}},
+        {{{Script_Op::Fade_Out_NPC, Fade_Params{"Nightwish", .5}}}},
+        {{{Script_Op::Join_Party, Party_Params{NIGHTWISH_INFO}}}}
+      }},
+      {{
+        {{{Script_Op::Say, Say_Params{"Hero", "Gallus joined your party!", 8, -40}}}},
+        {{{Script_Op::Fade_Out_NPC, Fade_Params{"Gallus", .5}}}},
+        {{{Script_Op::Join_Party, Party_Params{GALLUS_INFO}}}}
       }}
     }
   },

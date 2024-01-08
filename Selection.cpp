@@ -37,6 +37,16 @@ void Selection<string>::update_input(World* world)
     }
     m_choices = to_pointers(world->get_items());
   }
+  if(m_render_mode == "Equipment")
+  {
+    for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
+    {
+      delete m_choices[i];
+      m_choices[i] = nullptr;
+      --mem;
+    }
+    m_choices = to_pointers(world->get_equipment());
+  }
   if(m_render_mode == "Key Items")
   {
     for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
@@ -47,7 +57,7 @@ void Selection<string>::update_input(World* world)
     }
     m_choices = to_pointers(world->get_key_items());
   }
-    if(m_render_mode == "Stats")
+  if(m_render_mode == "Stats")
   {
     for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
     {
@@ -134,11 +144,6 @@ void Selection<string>::update_input(World* world)
         }
         m_focus_x = min(m_focus_x + 1, m_columns - 1);
       }
-    }
-
-    if(IsKeyPressed(KEY_Z) == true)
-    {
-      on_click();
     }
     world->set_cursor_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
     m_highlighted_item = m_focus_x + m_focus_y * m_columns;
@@ -227,11 +232,6 @@ void Selection<Player_Summary>::update_input(World* world)
         m_focus_x = min(m_focus_x + 1, m_columns - 1);
       }
     }
-
-    if(IsKeyPressed(KEY_Z) == true)
-    {
-      on_click();
-    }
     world->set_cursor_destination(m_x + m_spacing_x * m_focus_x, m_y + m_spacing_y * (m_focus_y - m_display_start));
     m_highlighted_item = m_focus_x + m_focus_y * m_columns;
   }
@@ -260,6 +260,10 @@ void Selection<string>::render(World* world, const string & party_member_name) c
         {
           world->render_item(x, y, 0, item_index, m_spacing_x);
         }
+        else if(m_render_mode == "Equipment")
+        {
+          world->render_equipment(x, y, 0, item_index, m_spacing_x);
+        }
         else if(m_render_mode == "Key Items")
         {
           world->render_key_item(x, y, 0, item_index);
@@ -279,6 +283,17 @@ void Selection<string>::render(World* world, const string & party_member_name) c
 }
 
 template <>
+string Selection<string>::get_highlighted_item_string() const
+{
+  if(m_show_cursor == true)
+  {
+    return *m_choices[m_highlighted_item];
+  }
+  crash("Error: Tried to get the selected option in inactive selection menu \"" + c_get_options() + "\".");
+  return "NULL";
+}
+
+template <>
 string Selection<string>::c_get_options() const
 {
   string menu_items{""};
@@ -291,16 +306,4 @@ string Selection<string>::c_get_options() const
     }
   }
   return menu_items;
-}
-
-template <>
-void Selection<string>::on_click()
-{
-  m_selected_item = m_focus_x + m_focus_y * m_columns;
-}
-
-template <>
-void Selection<Player_Summary>::on_click()
-{
-  m_selected_item = m_focus_x + m_focus_y * m_columns;
 }

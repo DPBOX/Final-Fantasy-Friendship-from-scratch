@@ -141,7 +141,7 @@ class Selection
     void set_position(const long & x, const long & y);
     void set_spacing_x(const long & text_area_width);
     long get_height() const;
-    long get_selected_item();
+    string get_highlighted_item_string() const;
     long get_highlighted_item() const;
     void show_cursor();
     void hide_cursor();
@@ -153,7 +153,6 @@ class Selection
 
   private:
     void render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
-    void on_click();
 
     long m_x{0};
     long m_y{0};
@@ -170,7 +169,6 @@ class Selection
     long m_show_menu{true};
     long m_queue_show_menu{true};
     long m_display_start{0};
-    long m_selected_item{-1};
     long m_highlighted_item{0};
     string m_render_mode{"Normal"};
 };
@@ -188,16 +186,13 @@ template <>
 void Selection<string>::render(World* world, const string & party_member_name) const;
 
 template <>
+string Selection<string>::get_highlighted_item_string() const;
+
+template <>
 string Selection<string>::c_get_options() const;
 
 template <>
 void Selection<string>::render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
-
-template <>
-void Selection<string>::on_click();
-
-template <>
-void Selection<Player_Summary>::on_click();
 
 class Textbox
 {

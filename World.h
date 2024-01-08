@@ -72,18 +72,20 @@ struct Enemy_Base_Stats
 class Stat_Modifier
 {
   public:
-    explicit Stat_Modifier(const string & id, const string & stat, const long & modifier) : m_id(id), m_type("Add"), m_stat(stat), m_add_modifier(modifier){}
+    explicit Stat_Modifier(const string & id, const string & stat, const long & modifier, const bool & replace) : m_id(id), m_type(replace == true ? "Replace" : "Add"), m_stat(stat), m_replace_modifier(replace == true ? modifier : 0), m_add_modifier(replace == true ? 0 : modifier){}
     explicit Stat_Modifier(const string & id, const string & stat, const double & modifier) : m_id(id), m_type("Multiply"), m_stat(stat), m_multiply_modifier(modifier){}
     bool operator==(const Stat_Modifier & rhs) const;
     string get_id() const;
     string get_type() const;
     string get_stat() const;
+    long get_replace_modifier() const;
     long get_add_modifier() const;
     double get_multiply_modifier() const;
   private:
     string m_id{"NULL"};
     string m_type{"NULL"};
     string m_stat{"NULL"};
+    long m_replace_modifier{0};
     long m_add_modifier{0};
     double m_multiply_modifier{0};
 };
@@ -192,6 +194,65 @@ struct Player_Info
 
 #include "Consts/Party_Member_Info_Consts.h"
 
+class Item
+{
+  public:
+    explicit Item(){}
+    virtual ~Item(){}
+    virtual string get_name() const;
+    virtual string get_type() const;
+    virtual string get_description() const = 0;
+    virtual long get_icon() const;
+    virtual void increment_count(){}
+    virtual void decrement_count(){}
+    virtual long get_count() const;
+//    virtual void use(){}
+  protected:
+    string m_name{"NULL"};
+    string m_type{"NULL"};
+    string m_description{"NULL"};
+    long m_icon{0};
+};
+
+class Consumable_Item : public Item
+{
+  public:
+    explicit Consumable_Item(const string & name, const string & description);
+    virtual ~Consumable_Item(){}
+    virtual string get_description() const;
+    virtual void increment_count();
+    virtual void decrement_count();
+    virtual long get_count() const;
+//    virtual void use();
+  protected:
+    long m_count{1};
+};
+
+class Key_Item : public Item
+{
+  public:
+    explicit Key_Item(const string & name, const string & description);
+    virtual ~Key_Item(){}
+    virtual string get_description() const;
+//    virtual void use();
+};
+
+class Equipment : public Item
+{
+  public:
+    explicit Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by = vector<string>{}, const string & equipped_by = "NULL");
+    virtual ~Equipment(){}
+    virtual string get_description() const;
+    virtual void increment_count();
+    virtual void decrement_count();
+    virtual long get_count() const;
+  protected:
+    long m_count{1};
+    vector<string> m_usable_by{};
+    vector<Stat_Modifier> m_stats{};
+    string m_equipped_by{"NULL"};
+};
+/*
 struct Item
 {
   struct Stats
@@ -284,8 +345,7 @@ class Item_Slot
     Item m_item{};
     long m_count{1};
 };
-
-#include "Consts/Item_Consts.h"
+*/
 
 class Party_Member
 {
@@ -324,12 +384,12 @@ class Party_Member
     Player_Stats m_stats{TEMPEST_SHADOW_BASE_STATS};
     bool m_row{true};
     long m_soul_break_level{1};
-    Item m_equipped_weapon{};
-    Item m_equipped_offhand{};
-    Item m_equipped_helmet{};
-    Item m_equipped_armor{};
-    Item m_equipped_accessory_one{};
-    Item m_equipped_accessory_two{};
+    Equipment* m_equipped_weapon{};
+    Equipment* m_equipped_offhand{};
+    Equipment* m_equipped_helmet{};
+    Equipment* m_equipped_armor{};
+    Equipment* m_equipped_accessory_one{};
+    Equipment* m_equipped_accessory_two{};
 };
 
 class Party
@@ -376,25 +436,31 @@ class World
     void update();
     void render_item(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
     void render_key_item(const long & x, const long & y, const long & font_no, const long & item_index) const;
+    void render_equipment(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
     void render_stat(const long & x, const long & y, const long & font_no, const long & item_index, const long & width, const string & name) const;
     void render_cursor() const;
     void render_text_center(const long & font_no, const string & text, const long & y_pos, const long & alpha = 255) const;
     void render_text(const long & font_no, const string & text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
     void render_letter(const long & font_no, const long & x, const long & y, const char & id, const long & alpha = 255) const;
+
     vector<string> get_items() const;
     vector<string> get_key_items() const;
-    Item_Slot get_item(const long & index) const;
-    Item_Slot get_item(const string & name) const;
-    Item get_key_item(const long & index) const;
+    vector<string> get_equipment() const;
+    string get_item_description(const string & item_name) const;
+
     bool has_items() const;
     bool has_item(const string & item) const;
     void add_item(const string & item);
     void remove_item(const string & item);
-    void remove_item(const long & item_index);
     bool has_key_items() const;
     bool has_key_item(const string & item) const;
     void add_key_item(const string & item);
     void remove_key_item(const string & item);
+    bool has_equipment() const;
+    bool has_equipment(const string & item) const;
+    void add_equipment(const string & item);
+    void remove_equipment(const string & item);
+
     string get_time() const;
     long get_money() const;
     void pause_time();
@@ -421,18 +487,21 @@ class World
     bool set_party_member_front_row(const string & index);
     bool set_party_member_back_row(const string & index);
     void swap_party_members(const string & name1, const string & name2);
+    void add_party_member(const Player_Info & player);
     
   private:
     LTimer m_time{};
     long m_money{0};
-    vector<Item_Slot> m_items{};
-    vector<Item> m_key_items{};
+    vector<Consumable_Item*> m_items{};
+    vector<Key_Item*> m_key_items{};
+    vector<Equipment*> m_equipment{};
     Texture2D m_item_icons_tex{};
     Party m_party{};
     vector<Fnt*> m_fonts{};
     Cursor* m_cursor{nullptr};
     vector<Sound> m_global_sounds{};
     vector<string> m_global_sound_names{};
+    vector<Item*> m_item_database{};
 };
 
 #endif

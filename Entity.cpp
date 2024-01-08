@@ -17,7 +17,7 @@ bool Map_Handler::Entity::path_finished() const
 
 long Map_Handler::Entity::tile_occupied(const long & x, const long & y, const long & layer) const
 {
-  return m_tile_x == x && m_tile_y == y && m_layer == layer;
+  return m_alpha != 0 && m_tile_x == x && m_tile_y == y && m_layer == layer;
 }
 
 void Map_Handler::Entity::render(Map_Handler* map_handler) const

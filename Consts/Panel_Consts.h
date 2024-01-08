@@ -11,9 +11,12 @@ const long STATUS_PROGRESS_BAR_PADDING{8};
 const long TEXT_FONT_HEIGHT{16};
 const double PLAYER_SUMMARY_ROW_PORTRAIT_TWEEN_TIME{.05};
 
+const long CONSUMABLE_ITEM_ICON{18};
+const long KEY_ITEM_ICON{19};
+
 const vector<string> FORMATION_MENU_TEXT{"Up/Down: Select char.", "Left/Right: Char. row", "A: Switch characters", "", "The character at the", "top is the leader and", "the one you will", "control. Characters in", "the front row will", "give and take normal", "damage. Characters", "in the back row will", "give and take half", "damage. Some", "weapons and abilities", "can do normal damage", "from the back row.", ""};
 const vector<string> STAT_STRINGS{"Strength", "Attack", "Weapon", "Speed", "Defense", "Shield", "Intellect", "Resistance", "Helm", "Stamina", "Accuracy", "Armor", "Spirit", "Critical", "Accessory 1", "Evasion", "Magic Evasion", "Accessory 2"};
-const vector<string> STAT_DESCRIPTIONS_LINE_1{"Increasing Strength will make your physical attacks such as the Attack command deal more", "Increasing Attack will make your physical attacks such as the Attack command deal more", "", "Increasing Speed will make the ATB bar fill up faster.", "Increasing Defense will make you take less damage from physical attacks.", "", "Increasing Intellect will make your magical attacks do more damage to enemies.", "Increasing Resistance will make you take less damage from magical attacks.", "", "Stamina increases your Max HP when levelling up.", "Increasing Accuracy will make your attacks miss less." , "", "Spirit increases your Max MP when levelling up.", "Increasing Critical will make the Attack command more likely to be a critical hit and do a lot", "", "Increasing Evasion will make enemies' physical attacks miss more often.", "Increasing Magic Evasion will make enemies' magical attacks miss more often.", ""};
+const vector<string> STAT_DESCRIPTIONS_LINE_1{"Increasing Strength will make your physical attacks such as the Attack command deal more", "Increasing Attack will make your physical attacks such as the Attack command deal more", "", "Increasing Speed will make the ATB bar fill up faster.", "Increasing Defense will make you take less damage from physical attacks.", "", "Increasing Intellect will make your magical attacks do more damage to enemies.", "Increasing Resistance will make you take less damage from magical attacks.", "", "Increasing Stamina will increase your maximum HP.", "Increasing Accuracy will make your attacks miss less." , "", "Increasing Spirit will increase your maximum MP.", "Increasing Critical will make the Attack command more likely to be a critical hit and do a lot", "", "Increasing Evasion will make enemies' physical attacks miss more often.", "Increasing Magic Evasion will make enemies' magical attacks miss more often.", ""};
 const vector<string> STAT_DESCRIPTIONS_LINE_2{"damage to enemies. It can be increased by levelling up.", "damage to enemies. Only equipment can change it.", "", "It can be increased by levelling up.", "Only equipment can change it.", "", "It can be increased by levelling up.", "Only equipment can change it.", "", "It can be increased by levelling up.", "Only equipment can change it.", "", "It can be increased by levelling up.", "more damage. Only equipment can change it.", "", "Only equipment can change it.", "Only equipment can change it.", ""};
 
 const long ALPHA_MAX{255};
@@ -73,9 +76,9 @@ const long FRONT_MENU_SPLIT{4};
 const long NUM_FRONT_MENU_CHOICES{5};
 const vector<string> FRONT_MENU_CHOICES{"Items", "Magic", "Status and Equipment", "Formation", "Save"};
 
-const long NUM_ITEM_MENU_CHOICES{2};
+const long NUM_ITEM_MENU_CHOICES{3};
 const long ITEM_MENU_SPLIT{3};
-const vector<string> ITEM_MENU_CHOICES{"Items", "Key Items"};
+const vector<string> ITEM_MENU_CHOICES{"Items", "Equipment", "Key Items"};
 const double ITEM_QUANTITY_LOCATION_FRACTION{.75};
 const double STAT_LOCATION_FRACTION{.5};
 const long ICON_WIDTH{18};

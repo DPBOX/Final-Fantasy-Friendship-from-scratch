@@ -169,49 +169,43 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, World* worl
   {
     m_party_info[i]->update_tweens(world);
   }
-  
-  long selected_item{-1};
-  long highlighted_item{-1};
+
+  long highlighted_item{0};
 
   if(m_selection->cursor_shown() == true)
   {
-    selected_item = m_selection->get_selected_item();
     highlighted_item = m_selection->get_highlighted_item();
-    switch(highlighted_item)
+    if(IsKeyPressed(KEY_Z) == true)
     {
-      default:
-        break;
-    }
-    switch(selected_item)
-    {
-      case -1:
-        break;
-      case 0:
-        world->play_global_sound("Confirm");
-        machine->set_next_state(State_Machine::ITEM_MENU_STATE);
-        break;
-      case 1:
-        world->play_global_sound("Buzzer");
-        m_option_selected = 1;
-        break;
-      case 2:
-        world->play_global_sound("Confirm");
-        m_selection->hide_cursor();
-        m_party_menu->show_cursor();
-        m_option_selected = 2;
-        break;
-      case 3:
-        world->play_global_sound("Confirm");
-        m_selection->hide_cursor();
-        m_party_menu->show_cursor();
-        m_option_selected = 3;
-        break;
-      case 4:
-        world->play_global_sound("Buzzer");
-        break;
-      default:
-        crash("Error: Tried to select invalid option " + to_string(selected_item) + " in selection menu \"" + m_selection->c_get_options() + "\".");
-        break;
+      switch(highlighted_item)
+      {
+        case 0:
+          world->play_global_sound("Confirm");
+          machine->set_next_state(State_Machine::ITEM_MENU_STATE);
+          break;
+        case 1:
+          world->play_global_sound("Buzzer");
+          m_option_selected = 1;
+          break;
+        case 2:
+          world->play_global_sound("Confirm");
+          m_selection->hide_cursor();
+          m_party_menu->show_cursor();
+          m_option_selected = 2;
+          break;
+        case 3:
+          world->play_global_sound("Confirm");
+          m_selection->hide_cursor();
+          m_party_menu->show_cursor();
+          m_option_selected = 3;
+          break;
+        case 4:
+          world->play_global_sound("Buzzer");
+          break;
+        default:
+          crash("Error: Tried to select invalid option " + to_string(highlighted_item) + " in selection menu \"" + m_selection->c_get_options() + "\".");
+          break;
+      }
     }
   }
   if(m_party_menu->cursor_shown() == true)
@@ -228,25 +222,10 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, World* worl
       }
     }
 
-    if(IsKeyPressed(KEY_X) == true)
-    {
-      world->play_global_sound("Back");
-      m_party_menu->hide_cursor();
-      m_selection->show_cursor();
-      m_option_selected = -1;
-      if(switch_on != -1)
-      {
-        m_party_info[switch_on]->toggle_switch_rect();
-      }
-    }
-    selected_item = m_party_menu->get_selected_item();
     highlighted_item = m_party_menu->get_highlighted_item();
 
     switch(m_option_selected)
     {
-      case -1:
-      case 0:
-        break;
       case 1:
         break;
       case 2:
@@ -297,6 +276,18 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, World* worl
       default:
         crash("Error: Tried to select invalid option " + to_string(m_option_selected) + " in the party menu.");
         break;
+    }
+
+    if(IsKeyPressed(KEY_X) == true)
+    {
+      world->play_global_sound("Back");
+      m_party_menu->hide_cursor();
+      m_selection->show_cursor();
+      m_option_selected = -1;
+      if(switch_on != -1)
+      {
+        m_party_info[switch_on]->toggle_switch_rect();
+      }
     }
   }
 }
@@ -404,9 +395,13 @@ State_Machine::Item_Menu::Item_Menu()
   m_items = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, true, "Items"};
   m_items->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
   m_items->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
+  m_equipment = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Equipment"};
+  m_equipment->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
+  m_equipment->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
   m_key_items = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Key Items"};
   m_key_items->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
   m_key_items->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
+  ++mem;
   ++mem;
   ++mem;
   ++mem;
@@ -424,6 +419,7 @@ State_Machine::Item_Menu::~Item_Menu()
   delete m_item_list;
   delete m_category;
   delete m_items;
+  delete m_equipment;
   delete m_key_items;
   m_switch = nullptr;
   m_item_text = nullptr;
@@ -431,9 +427,11 @@ State_Machine::Item_Menu::~Item_Menu()
   m_item_list = nullptr;
   m_category = nullptr;
   m_items = nullptr;
+  m_equipment = nullptr;
   m_key_items = nullptr;
   UnloadTexture(m_panel_texture);
   UnloadTexture(m_arrow_texture);
+  --mem;
   --mem;
   --mem;
   --mem;
@@ -450,61 +448,81 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
     world->play_global_sound("Back");
     machine->set_next_state(State_Machine::FRONT_MENU_STATE);
   }
-  long selected_item{-1};
-  long highlighted_item{-1};
+
+  long highlighted_item{0};
 
   m_category->update_input(world);
   m_items->update_input(world);
+  m_equipment->update_input(world);
   m_key_items->update_input(world);
 
   if(m_category->cursor_shown() == true)
   {
-    selected_item = m_category->get_selected_item();
     highlighted_item = m_category->get_highlighted_item();
     switch(highlighted_item)
     {
       case 0:
+        m_equipment->hide_menu();
         m_key_items->hide_menu();
         m_items->show_menu();
         break;
       case 1:
+        m_key_items->hide_menu();
         m_items->hide_menu();
+        m_equipment->show_menu();
+        break;
+      case 2:
+        m_items->hide_menu();
+        m_equipment->hide_menu();
         m_key_items->show_menu();
         break;
       default:
         break;
     }
-    switch(selected_item)
+    if(IsKeyPressed(KEY_Z) == true)
     {
-      case -1:
-        break;
-      case 0:
-        if(world->has_items() == true)
-        {
-          world->play_global_sound("Confirm");
-          m_category->hide_cursor();
-          m_items->show_cursor();
-        }
-        else
-        {
-          world->play_global_sound("Buzzer");
-        }
-        break;
-      case 1:
-        if(world->has_key_items() == true)
-        {
-          world->play_global_sound("Confirm");
-          m_category->hide_cursor();
-          m_key_items->show_cursor();
-        }
-        else
-        {
-          world->play_global_sound("Buzzer");
-        }
-        break;
-      default:
-        crash("Error: Tried to select invalid option " + to_string(selected_item) + " in selection menu \"" + m_category->c_get_options() + "\".");
-        break;
+      switch(highlighted_item)
+      {
+        case 0:
+          if(world->has_items() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_category->hide_cursor();
+            m_items->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 1:
+          if(world->has_equipment() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_category->hide_cursor();
+            m_equipment->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 2:
+          if(world->has_key_items() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_category->hide_cursor();
+            m_key_items->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        default:
+          crash("Error: Tried to select invalid option " + to_string(highlighted_item) + " in selection menu \"" + m_category->c_get_options() + "\".");
+          break;
+      }
     }
   }
   if(m_items->cursor_shown() == true || m_key_items->cursor_shown() == true)
@@ -513,6 +531,7 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
     {
       world->play_global_sound("Back");
       m_items->hide_cursor();
+      m_equipment->hide_cursor();
       m_key_items->hide_cursor();
       m_category->show_cursor();
     }
@@ -522,12 +541,29 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
     if(IsKeyPressed(KEY_Z) == true)
     {
       world->play_global_sound("Confirm");
+      string selected_item_s{m_items->get_highlighted_item_string()};
+      world->remove_item(selected_item_s);
     }
-    selected_item = m_items->get_selected_item();
-    world->remove_item(selected_item);
     if(world->has_items() == false)
     {
       m_items->hide_cursor();
+      m_equipment->hide_cursor();
+      m_key_items->hide_cursor();
+      m_category->show_cursor();
+    }
+  }
+  if(m_equipment->cursor_shown() == true)
+  {
+    if(IsKeyPressed(KEY_Z) == true)
+    {
+      world->play_global_sound("Confirm");
+      string selected_item_s{m_equipment->get_highlighted_item_string()};
+      world->remove_equipment(selected_item_s);
+    }
+    if(world->has_equipment() == false)
+    {
+      m_items->hide_cursor();
+      m_equipment->hide_cursor();
       m_key_items->hide_cursor();
       m_category->show_cursor();
     }
@@ -538,7 +574,6 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
     {
       world->play_global_sound("Buzzer");
     }
-    m_key_items->update_input(world);
   }
 }
 
@@ -550,15 +585,20 @@ void State_Machine::Item_Menu::render(World* world) const
   m_item_list->render(m_panel_texture);
   m_category->render(world);
   m_items->render(world);
+  m_equipment->render(world);
   m_key_items->render(world);
   world->render_text(0, m_top_bar_text, TEXTBOX_PADDING_SCREEN + (SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2) / ITEM_MENU_SPLIT / 2 - world->get_word_width(0, m_top_bar_text) / 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
   if(m_items->cursor_shown() == true)
   {
-    world->render_text(0, world->get_item(m_items->get_highlighted_item()).get_item().get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
+    world->render_text(0, world->get_item_description(m_items->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
+  }
+  if(m_equipment->cursor_shown() == true)
+  {
+    world->render_text(0, world->get_item_description(m_equipment->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
   }
   if(m_key_items->cursor_shown() == true)
   {
-    world->render_text(0, world->get_key_item(m_key_items->get_highlighted_item()).get_description(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
+    world->render_text(0, world->get_item_description(m_key_items->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
   }
 }
 

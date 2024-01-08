@@ -177,6 +177,12 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++m_inner_index;
             ++m_inner_index2;
             break;
+            
+          case Script_Op::Join_Party:
+            world->add_party_member(*(get<Party_Params>(m_events[m_outer_index][m_inner_index]).m_member));
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
 
           case Script_Op::Wait:
             instant = false;
