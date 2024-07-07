@@ -1,3 +1,5 @@
+//Defining actual proccesses begins here.
+
 #include "Main.h"
 #include "Game_State.h"
 
