@@ -1,3 +1,5 @@
+//Defines cursor processing.
+
 #ifndef CURSOR_H
 #define CURSOR_H
 #include "Animation.h"
