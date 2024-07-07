@@ -1,3 +1,5 @@
+//Processes battle animations.
+
 #include "Main.h"
 #include "Animation.h"
 
