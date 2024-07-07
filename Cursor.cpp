@@ -2,6 +2,7 @@
 #include "Cursor.h"
 
 Cursor::Cursor()
+//Loads the cursor image graphic at startup.
 {
   Image image{LoadImageFromMemory(".png", binary_Image_smolder_fly_right_png_start, reinterpret_cast<long>(&binary_Image_smolder_fly_right_png_size))};
   m_cursor = LoadTextureFromImage(image);
@@ -9,6 +10,7 @@ Cursor::Cursor()
 }
 
 Cursor::~Cursor()
+//Unloads the image graphic at shutdown.
 {
   UnloadTexture(m_cursor);
 }
@@ -68,6 +70,7 @@ void Cursor::set_destination(const long & end_x, const long & end_y)
 }
 
 void Cursor::finish()
+//Moves cursor offscreen.
 {
   if(m_destination_set == false)
   {
