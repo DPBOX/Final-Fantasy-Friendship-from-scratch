@@ -1,3 +1,5 @@
+//This is used to display a text window.
+
 #include "Main.h"
 #include "UI.h"
 
