@@ -1,3 +1,5 @@
+//These define game processing.
+
 #ifndef MAIN_H
 #define MAIN_H
 #define _GLIBCXX_DEBUG
