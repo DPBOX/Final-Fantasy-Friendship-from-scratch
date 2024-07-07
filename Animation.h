@@ -1,3 +1,5 @@
+//This defines the process for battle animations.
+
 #ifndef ANIMATION_H
 #define ANIMATION_H
 
