@@ -1,3 +1,5 @@
+//Defines text window settings.
+
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 #include "Music_Commands.h"
