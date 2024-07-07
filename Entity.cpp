@@ -1,3 +1,5 @@
+//Processes placement and movement for NPCs, characters and player graphics.
+
 #include "Main.h"
 #include "Tilemap.h"
 
