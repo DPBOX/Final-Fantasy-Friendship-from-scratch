@@ -25,6 +25,43 @@ void Map_Handler::Entity::render(Map_Handler* map_handler) const
   DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_animation.get_frame() * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
 }
 
+Map_Handler::Treasure_Chest::Treasure_Chest(Map_Handler* map_handler, const NPC_Data & npc_data)
+{
+  m_layer = npc_data.m_layer;
+  m_width = npc_data.m_width;
+  m_tile_x = npc_data.m_tile_x;
+  m_tile_y = npc_data.m_tile_y;
+  m_id = npc_data.m_id;
+  m_type = "Treasure Chest";
+  m_scripts = npc_data.m_scripts;
+  if(npc_data.m_hidden == true)
+  {
+    m_alpha = 0;
+  }
+  else
+  {
+    m_alpha = ALPHA_MAX;
+  }
+
+  Image image2{LoadImageFromMemory(".png", npc_data.m_img_data, npc_data.m_img_size)};
+  m_frames = LoadTextureFromImage(image2);
+  UnloadImage(image2);
+  m_x = m_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width();
+  m_y = m_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() * 2;
+}
+
+void Map_Handler::Treasure_Chest::update_input(Map_Handler* map_handler){}
+
+void Map_Handler::Treasure_Chest::turn(const Direction & direction)
+{
+  m_opened = true;
+}
+
+void Map_Handler::Treasure_Chest::render(Map_Handler* map_handler) const
+{
+  DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_opened * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
+}
+
 void Map_Handler::Character::turn(const Direction & direction)
 {
   if(m_alpha != 0)
@@ -63,7 +100,7 @@ Map_Handler::Hero::Hero(Map_Handler* map_handler, const long & layer, const long
   m_type = "Hero";
   m_id = "Hero";
   m_animation = Animation(animation, start_frame, loop, speed);
-  Image image{LoadImageFromMemory(".png", binary_Image_hero_png_start, reinterpret_cast<long>(&binary_Image_hero_png_size))};
+  Image image{LoadImageFromMemory(".png", TEMPEST_IMAGE.m_data, TEMPEST_IMAGE.m_size)};
   m_frames = LoadTextureFromImage(image);
   UnloadImage(image);
 
@@ -113,7 +150,7 @@ void Map_Handler::Hero::wait_enter()
 
 void Map_Handler::Hero::wait_update_tiled(Map_Handler* map_handler)
 {
-  if(m_vx == 0 && m_vy == 0 && m_frame_count == 0)
+  if(m_vx < .001 && m_vy < .001 && m_vx > -.001 && m_vy > -.001 && m_frame_count == 0)
   {
     if(IsKeyDown(KEY_RIGHT) == true)
     {
@@ -304,7 +341,7 @@ void Map_Handler::Hero::wait_update_tiled(Map_Handler* map_handler)
     }
   }
   
-  else if(m_vx == 0 && m_vy == 0 && m_frame_count != 0)
+  else if(m_vx < .001 && m_vy < .001 && m_vx > -.001 && m_vy > -.001 && m_frame_count != 0)
   {
     if((IsKeyDown(KEY_RIGHT) == true && m_facing_dir == Direction::Right) ||
        (IsKeyDown(KEY_LEFT) == true && m_facing_dir == Direction::Left) ||
@@ -360,7 +397,7 @@ void Map_Handler::Hero::wait_update_tiled(Map_Handler* map_handler)
     }
   }
   
-  else if(m_vx != 0 || m_vy != 0)
+  else if(m_vx > .001 || m_vy > .001 || m_vx < -.001 || m_vy < -.001)
   {
     m_x += m_vx;
     m_y += m_vy;
@@ -638,7 +675,7 @@ Map_Handler::Strolling_NPC::Strolling_NPC(Map_Handler* map_handler, const NPC_Da
 
 void Map_Handler::Strolling_NPC::stand_update(Map_Handler* map_handler)
 {
-  if(m_vx != 0 || m_vy != 0)
+  if(m_vx > .001 || m_vy > .001 || m_vx < -.001 || m_vy < -.001)
   {
     m_x += m_vx;
     m_y += m_vy;
@@ -776,7 +813,7 @@ Map_Handler::Path_NPC::Path_NPC(Map_Handler* map_handler, const NPC_Data & npc_d
 
 void Map_Handler::Path_NPC::stand_update(Map_Handler* map_handler)
 {
-  if(m_vx != 0 || m_vy != 0)
+  if(m_vx > .001 || m_vy > .001 || m_vx < -.001 || m_vy < -.001)
   {
     m_x += m_vx;
     m_y += m_vy;

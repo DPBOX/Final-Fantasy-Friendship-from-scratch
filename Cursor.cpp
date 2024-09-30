@@ -3,7 +3,7 @@
 
 Cursor::Cursor()
 {
-  Image image{LoadImageFromMemory(".png", binary_Image_smolder_fly_right_png_start, reinterpret_cast<long>(&binary_Image_smolder_fly_right_png_size))};
+  Image image{LoadImageFromMemory(".png", CURSOR_IMAGE.m_data, CURSOR_IMAGE.m_size)};
   m_cursor = LoadTextureFromImage(image);
   UnloadImage(image);
 }

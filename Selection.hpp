@@ -59,13 +59,13 @@ long Selection<T>::get_highlighted_item() const
 template <typename T>
 void Selection<T>::show_cursor()
 {
-  m_queue_show_cursor = true;
+  m_show_cursor = true;
 }
 
 template <typename T>
 void Selection<T>::hide_cursor()
 {
-  m_queue_show_cursor = false;
+  m_show_cursor = false;
 }
 
 template <typename T>
@@ -77,14 +77,14 @@ bool Selection<T>::cursor_shown() const
 template <typename T>
 void Selection<T>::show_menu()
 {
-  m_queue_show_menu = true;
+  m_show_menu = true;
 }
 
 template <typename T>
 void Selection<T>::hide_menu()
 {
-  m_queue_show_cursor = false;
-  m_queue_show_menu = false;
+  m_show_cursor = false;
+  m_show_menu = false;
 }
 
 template <typename T>

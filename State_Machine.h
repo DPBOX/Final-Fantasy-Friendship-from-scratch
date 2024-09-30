@@ -1,8 +1,6 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-#include "World.h"
-
 //State Machine class
 class State_Machine
 {
@@ -88,7 +86,6 @@ class State_Machine::Front_Menu : private State_Machine::Machine_State
     Selection<string>* m_selection{nullptr};
     Selection<Player_Summary>* m_party_menu{nullptr};
     string m_top_bar_text{"Current Map Name"};
-    Texture2D m_panel_texture{};
     vector<Player_Summary*> m_party_info{};
     long m_option_selected{-1};
 };
@@ -113,11 +110,8 @@ class State_Machine::Item_Menu : private State_Machine::Machine_State
     Panel* m_item_list{nullptr};
     Selection<string>* m_category{nullptr};
     Selection<string>* m_items{nullptr};
-    Selection<string>* m_equipment{nullptr};
     Selection<string>* m_key_items{nullptr};
     string m_top_bar_text{"Items"};
-    Texture2D m_panel_texture{};
-    Texture2D m_arrow_texture{};
 };
 
 class State_Machine::Status_Menu : private State_Machine::Machine_State
@@ -133,11 +127,16 @@ class State_Machine::Status_Menu : private State_Machine::Machine_State
     virtual void update(){}
     virtual void update_input(State_Machine* machine, World* world);
     virtual void render(World* world) const;
-    
-    Texture2D m_panel_texture{};
+
     string m_character_name{"NULL"};
     Panel* m_panel{nullptr};
+    Panel* m_equipment_panel{nullptr};
     Selection<string>* m_selection{nullptr};
+    Selection<string>* m_weapons{nullptr};
+    Selection<string>* m_shields{nullptr};
+    Selection<string>* m_helms{nullptr};
+    Selection<string>* m_armor{nullptr};
+    Selection<string>* m_accessories{nullptr};
     Progress_Bar* m_hp{};
     Progress_Bar* m_mp{};
     Progress_Bar* m_exp{};

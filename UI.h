@@ -1,13 +1,11 @@
 #ifndef UI_H
 #define UI_H
 
-#include "World.h"
-
 class World;
 
 struct Font_Params
 {
-  explicit Font_Params(const string & name = "Text", const unsigned char data[] = binary_Image_text_font_png_start, const long & size = reinterpret_cast<long>(&binary_Image_text_font_png_size), const long & cell_width = FONT_TEXT_CELL_WIDTH, const array<long, NUM_FONT_CELLS> & char_widths = FONT_TEXT_CHAR_WIDTHS) : m_name(name), m_data(data), m_size(size), m_cell_width(cell_width), m_char_widths(char_widths){}
+  explicit Font_Params(const string & name = "Text", const Image_Params & image = TEXT_FONT_IMAGE, const long & cell_width = FONT_TEXT_CELL_WIDTH, const array<long, NUM_FONT_CELLS> & char_widths = FONT_TEXT_CHAR_WIDTHS) : m_name(name), m_data(image.m_data), m_size(image.m_size), m_cell_width(cell_width), m_char_widths(char_widths){}
   explicit Font_Params(const Font_Params & obj) = default;
   Font_Params & operator =(const Font_Params & obj) = default;
   string m_name{"NULL"};
@@ -17,7 +15,13 @@ struct Font_Params
   const array<long, NUM_FONT_CELLS> m_char_widths{};
 };
 
-#include "Consts/Font_Consts.h"
+const Font_Params TEXT_FONT{};
+const Font_Params HEADING_FONT{"Heading", HEADING_FONT_IMAGE, FONT_HEADING_CELL_WIDTH, FONT_HEADING_CHAR_WIDTHS};
+const Font_Params CHARACTER_TITLE_FONT{"Character Title", TEXT_FONT_YELLOW_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params RED_FONT{"Red Font", TEXT_FONT_RED_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params TEMPEST_FONT{"Character Title", TEXT_FONT_TEMPEST_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params NIGHTWISH_FONT{"Character Title", TEXT_FONT_NIGHTWISH_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params GALLUS_FONT{"Character Title", TEXT_FONT_GALLUS_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
 
 class Fnt
 {
@@ -40,40 +44,23 @@ class Fnt
     Texture2D m_font_img{};
 };
 
-struct Progress_Bar_Assets
-{
-  explicit Progress_Bar_Assets(const unsigned char background_data[], const long & background_size, const unsigned char bar_data[], const long & bar_size) :
-                       m_background_data(background_data), m_background_size(background_size), m_bar_data(bar_data), m_bar_size(bar_size){}
-  Progress_Bar_Assets(const Progress_Bar_Assets & obj) = delete;
-  Progress_Bar_Assets & operator =(const Progress_Bar_Assets & obj) = delete;
-  ~Progress_Bar_Assets(){}
-
-  const unsigned char* m_background_data{nullptr};
-  const long m_background_size{1};
-  const unsigned char* m_bar_data{nullptr};
-  const long m_bar_size{1};
-};
-
-#include "Consts/Progress_Bar_Consts.h"
-
 class Progress_Bar
 {
   public:
     explicit Progress_Bar(){}
-    explicit Progress_Bar(const Progress_Bar_Assets & media, const long & length, const long & padding_x = 0, const long & padding_y = 0);
+    explicit Progress_Bar(const string & background_image_name, const string & bar_image_name, const long & length, const long & padding_x = 0, const long & padding_y = 0) : m_background_image_name(background_image_name), m_bar_image_name(bar_image_name), m_length(length), m_padding_x(padding_x), m_padding_y(padding_y){}
     Progress_Bar(const Progress_Bar & obj) = delete;
     Progress_Bar & operator =(const Progress_Bar & obj) = delete;
-    ~Progress_Bar();
 
     void set_value(const long & value, const long & maximum, const long & minimum = 0);
-    void render(const long & x, const long & y) const;
+    void render(World* world, const long & x, const long & y) const;
   private:
+    string m_background_image_name{"NULL"};
+    string m_bar_image_name{"NULL"};
     long m_length{64};
     double m_value{50};
     long m_padding_x{0};
     long m_padding_y{0};
-    Texture2D m_background{};
-    Texture2D m_foreground{};
 };
 
 class Panel
@@ -85,7 +72,7 @@ class Panel
     ~Panel(){}
 
     void set_position(const double & x, const double & y, const double & width, const double & height);
-    void render(const Texture2D & panel_texture) const;
+    void render(World* world) const;
   private:
     double m_x{0};
     double m_y{0};
@@ -130,7 +117,7 @@ template <typename T>
 class Selection
 {
   public:
-    explicit Selection(const vector<T*> & data, const long & columns, const long & rows, const long & display_rows, const long & spacing_y, const bool & show_cursor = true, const bool show_menu = true, const string & render_mode = "Normal") : m_choices(data), m_columns(columns), m_max_rows(rows), m_display_rows(display_rows), m_spacing_y(spacing_y), m_show_cursor(show_cursor), m_queue_show_cursor(show_cursor), m_show_menu(show_menu), m_queue_show_menu(show_menu), m_render_mode(render_mode){}
+    explicit Selection(const vector<T*> & data, const long & columns, const long & rows, const long & display_rows, const long & spacing_y, const bool & show_cursor = true, const bool show_menu = true, const string & render_mode = "Normal") : m_choices(data), m_columns(columns), m_max_rows(rows), m_display_rows(display_rows), m_spacing_y(spacing_y), m_show_cursor(show_cursor), m_show_menu(show_menu), m_render_mode(render_mode){}
     Selection(const Selection & obj) = delete;
     Selection & operator =(const Selection & obj) = delete;
     ~Selection(){}
@@ -165,9 +152,7 @@ class Selection
     long m_spacing_x{0};
     long m_spacing_y{0};
     long m_show_cursor{true};
-    long m_queue_show_cursor{true};
     long m_show_menu{true};
-    long m_queue_show_menu{true};
     long m_display_start{0};
     long m_highlighted_item{0};
     string m_render_mode{"Normal"};
@@ -197,10 +182,10 @@ void Selection<string>::render_item(World* world, const long & font, const long 
 class Textbox
 {
   public:
-    explicit Textbox();
+    explicit Textbox(){}
     void add_text(const string & text);
     void add_title(const string & title);
-    void add_portrait(const unsigned char* data, const long & size);
+    void add_portrait(const Image_Params & image);
     void add_selection_menu(Selection<string>* s);
     void create_fitted(const long & size_x, const long & size_y, World* world);
     void create_fitted_choices(const long & size_x, const long & size_y, const vector<string> & choices, World* world);
@@ -259,8 +244,6 @@ class Textbox
     Selection<string>* m_selection{nullptr};
     Texture2D m_portrait_img{};
     Animation m_continue_arrow_animation{vector<long>{}, 0, false, 0};
-    Texture2D m_panel_texture{};
-    Texture2D m_arrow_texture{};
 };
 
 #endif

@@ -1,8 +1,6 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-#include "World.h"
-#include "Script_Structs.h"
 #include "Game_State.h"
 
 class Map_Handler
@@ -185,6 +183,21 @@ class Map_Handler
         bool m_script_loop{false};
         //Index into m_scripts
         long m_script_index{0};
+    };
+
+    class Treasure_Chest : protected Entity
+    {
+      protected:
+        friend class Map_Handler;
+        explicit Treasure_Chest(Map_Handler* map_handler, const NPC_Data & npc_data);
+        Treasure_Chest(const Treasure_Chest & obj) = delete;
+        Treasure_Chest & operator =(const Treasure_Chest & obj) = delete;
+        virtual ~Treasure_Chest(){}
+        virtual void update_input(Map_Handler* map_handler);
+        virtual void render(Map_Handler* map_handler) const;
+        virtual void turn(const Direction & direction);
+
+        bool m_opened{false};
     };
 
     class Character : protected Entity

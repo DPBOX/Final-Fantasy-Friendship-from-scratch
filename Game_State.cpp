@@ -1,7 +1,5 @@
 #include "Main.h"
 #include "Game_State.h"
-#include "Consts/Storyboard_Consts.h"
-#include "Consts/Map_Consts.h"
 
 Game::Game()
 {
@@ -141,7 +139,7 @@ void Title_State::render(World* world) const
   world->render_text_center(1, "Dungeon", SCREEN_HEIGHT / 4 - FONT_HEADING_HEIGHT / 2);
   world->render_text_center(0, "Press Z!", SCREEN_HEIGHT * 3 / 4);
   world->render_text_center(0, "(X is back.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT);
-  world->render_text_center(0, "(S is open and close the menu. Only Items works.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT * 2);
+  world->render_text_center(0, "(S is open and close the menu.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT * 2);
 }
 
 Explore_State::Explore_State(const Map_Data & map_data, const Scr & start_script)

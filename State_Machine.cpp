@@ -94,10 +94,6 @@ bool State_Machine::Machine_State::root_menu_cursor_shown() const
 
 State_Machine::Front_Menu::Front_Menu(World* world)
 {
-  Image image{LoadImageFromMemory(".png", binary_Image_simple_panel_png_start, reinterpret_cast<long>(&binary_Image_simple_panel_png_size))};
-  m_panel_texture = LoadTextureFromImage(image);
-  UnloadImage(image);
-  
   for(long i{0}; i < world->get_party_size(); ++i)
   {
     m_party_info.push_back(new Player_Summary{TEXTBOX_PADDING_SCREEN + (SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2) / FRONT_MENU_SPLIT, TEXTBOX_PADDING_SCREEN_Y + PLAYER_SUMMARY_SECTION_PADDING + i * (TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_SECTION_PADDING), world->get_party_member_name(i), world->get_party_member_row(world->get_party_member_name(i))});
@@ -114,7 +110,7 @@ State_Machine::Front_Menu::Front_Menu(World* world)
   ++mem;
   m_formation = new Panel;
   ++mem;
-  m_selection = new Selection{to_pointers(FRONT_MENU_CHOICES), 1, NUM_FRONT_MENU_CHOICES, NUM_FRONT_MENU_CHOICES, TEXT_FONT_HEIGHT};
+  m_selection = new Selection{to_pointers(FRONT_MENU_CHOICES), NUM_FRONT_MENU_COLUMNS, NUM_FRONT_MENU_CHOICES, NUM_FRONT_MENU_CHOICES, TEXT_FONT_HEIGHT};
   ++mem;
   m_party_menu = new Selection{m_party_info, 1, world->get_party_size(), world->get_party_size(), TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_SECTION_PADDING, false};
   ++mem;
@@ -144,7 +140,6 @@ State_Machine::Front_Menu::~Front_Menu()
   m_menu = nullptr;
   m_selection = nullptr;
   m_party_menu = nullptr;
-  UnloadTexture(m_panel_texture);
   --mem;
   --mem;
   --mem;
@@ -208,7 +203,7 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, World* worl
       }
     }
   }
-  if(m_party_menu->cursor_shown() == true)
+  else if(m_party_menu->cursor_shown() == true)
   {
     long switch_on{-1};
     if(m_option_selected == 3)
@@ -294,10 +289,10 @@ void State_Machine::Front_Menu::update_input(State_Machine* machine, World* worl
 
 void State_Machine::Front_Menu::render(World* world) const
 {
-  m_gold->render(m_panel_texture);
-  m_map->render(m_panel_texture);
-  m_party->render(m_panel_texture);
-  m_menu->render(m_panel_texture);
+  m_gold->render(world);
+  m_map->render(world);
+  m_party->render(world);
+  m_menu->render(world);
   m_selection->render(world);
   m_party_menu->render(world);
   string map_first_line{split_map_name_text(0)};
@@ -308,7 +303,7 @@ void State_Machine::Front_Menu::render(World* world) const
   world->render_text(0, "Play Time: " + world->get_time(), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, SCREEN_HEIGHT - (world->get_font_height(0) + TEXTBOX_PADDING_SHORT) - TEXTBOX_PADDING_SCREEN_Y);
   if(m_option_selected == 3)
   {
-    m_formation->render(m_panel_texture);
+    m_formation->render(world);
     for(long i{0}; i < static_cast<long>(FORMATION_MENU_TEXT.size()); ++i)
     {
       world->render_text(0, FORMATION_MENU_TEXT[i], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + world->get_font_height(0) * i);
@@ -372,14 +367,6 @@ string State_Machine::Front_Menu::split_map_name_text(const bool & line_number) 
 
 State_Machine::Item_Menu::Item_Menu()
 {
-  Image image{LoadImageFromMemory(".png", binary_Image_simple_panel_png_start, reinterpret_cast<long>(&binary_Image_simple_panel_png_size))};
-  m_panel_texture = LoadTextureFromImage(image);
-  UnloadImage(image);
-  
-  Image image2{LoadImageFromMemory(".png", binary_Image_continue_arrow_png_start, reinterpret_cast<long>(&binary_Image_continue_arrow_png_size))};
-  m_arrow_texture = LoadTextureFromImage(image2);
-  UnloadImage(image2);
-
   m_switch = new Panel;
   m_item_text = new Panel;
   m_description = new Panel;
@@ -395,9 +382,6 @@ State_Machine::Item_Menu::Item_Menu()
   m_items = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, true, "Items"};
   m_items->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
   m_items->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
-  m_equipment = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Equipment"};
-  m_equipment->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
-  m_equipment->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
   m_key_items = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_ITEM_MENU_COLUMNS, ITEM_MENU_ROWS, ITEM_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Key Items"};
   m_key_items->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2 + TEXTBOX_PADDING_SHORT * 5);
   m_key_items->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
@@ -419,7 +403,6 @@ State_Machine::Item_Menu::~Item_Menu()
   delete m_item_list;
   delete m_category;
   delete m_items;
-  delete m_equipment;
   delete m_key_items;
   m_switch = nullptr;
   m_item_text = nullptr;
@@ -427,11 +410,7 @@ State_Machine::Item_Menu::~Item_Menu()
   m_item_list = nullptr;
   m_category = nullptr;
   m_items = nullptr;
-  m_equipment = nullptr;
   m_key_items = nullptr;
-  UnloadTexture(m_panel_texture);
-  UnloadTexture(m_arrow_texture);
-  --mem;
   --mem;
   --mem;
   --mem;
@@ -453,7 +432,6 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
 
   m_category->update_input(world);
   m_items->update_input(world);
-  m_equipment->update_input(world);
   m_key_items->update_input(world);
 
   if(m_category->cursor_shown() == true)
@@ -462,18 +440,11 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
     switch(highlighted_item)
     {
       case 0:
-        m_equipment->hide_menu();
         m_key_items->hide_menu();
         m_items->show_menu();
         break;
       case 1:
-        m_key_items->hide_menu();
         m_items->hide_menu();
-        m_equipment->show_menu();
-        break;
-      case 2:
-        m_items->hide_menu();
-        m_equipment->hide_menu();
         m_key_items->show_menu();
         break;
       default:
@@ -496,18 +467,6 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
           }
           break;
         case 1:
-          if(world->has_equipment() == true)
-          {
-            world->play_global_sound("Confirm");
-            m_category->hide_cursor();
-            m_equipment->show_cursor();
-          }
-          else
-          {
-            world->play_global_sound("Buzzer");
-          }
-          break;
-        case 2:
           if(world->has_key_items() == true)
           {
             world->play_global_sound("Confirm");
@@ -525,76 +484,53 @@ void State_Machine::Item_Menu::update_input(State_Machine* machine, World* world
       }
     }
   }
-  if(m_items->cursor_shown() == true || m_key_items->cursor_shown() == true)
+  else if(m_items->cursor_shown() == true || m_key_items->cursor_shown() == true)
   {
     if(IsKeyPressed(KEY_X) == true)
     {
       world->play_global_sound("Back");
       m_items->hide_cursor();
-      m_equipment->hide_cursor();
       m_key_items->hide_cursor();
       m_category->show_cursor();
     }
-  }
-  if(m_items->cursor_shown() == true)
-  {
-    if(IsKeyPressed(KEY_Z) == true)
+    else if(m_items->cursor_shown() == true)
     {
-      world->play_global_sound("Confirm");
-      string selected_item_s{m_items->get_highlighted_item_string()};
-      world->remove_item(selected_item_s);
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        world->play_global_sound("Confirm");
+        string selected_item_s{m_items->get_highlighted_item_string()};
+        world->remove_item(selected_item_s);
+      }
+      if(world->has_items() == false)
+      {
+        m_items->hide_cursor();
+        m_key_items->hide_cursor();
+        m_category->show_cursor();
+      }
     }
-    if(world->has_items() == false)
+    else if(m_key_items->cursor_shown() == true)
     {
-      m_items->hide_cursor();
-      m_equipment->hide_cursor();
-      m_key_items->hide_cursor();
-      m_category->show_cursor();
-    }
-  }
-  if(m_equipment->cursor_shown() == true)
-  {
-    if(IsKeyPressed(KEY_Z) == true)
-    {
-      world->play_global_sound("Confirm");
-      string selected_item_s{m_equipment->get_highlighted_item_string()};
-      world->remove_equipment(selected_item_s);
-    }
-    if(world->has_equipment() == false)
-    {
-      m_items->hide_cursor();
-      m_equipment->hide_cursor();
-      m_key_items->hide_cursor();
-      m_category->show_cursor();
-    }
-  }
-  if(m_key_items->cursor_shown() == true)
-  {
-    if(IsKeyPressed(KEY_Z) == true)
-    {
-      world->play_global_sound("Buzzer");
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        world->play_global_sound("Buzzer");
+      }
     }
   }
 }
 
 void State_Machine::Item_Menu::render(World* world) const
 {
-  m_switch->render(m_panel_texture);
-  m_item_text->render(m_panel_texture);
-  m_description->render(m_panel_texture);
-  m_item_list->render(m_panel_texture);
+  m_switch->render(world);
+  m_item_text->render(world);
+  m_description->render(world);
+  m_item_list->render(world);
   m_category->render(world);
   m_items->render(world);
-  m_equipment->render(world);
   m_key_items->render(world);
   world->render_text(0, m_top_bar_text, TEXTBOX_PADDING_SCREEN + (SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2) / ITEM_MENU_SPLIT / 2 - world->get_word_width(0, m_top_bar_text) / 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
   if(m_items->cursor_shown() == true)
   {
     world->render_text(0, world->get_item_description(m_items->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
-  }
-  if(m_equipment->cursor_shown() == true)
-  {
-    world->render_text(0, world->get_item_description(m_equipment->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT * 3 + world->get_font_height(0));
   }
   if(m_key_items->cursor_shown() == true)
   {
@@ -605,10 +541,6 @@ void State_Machine::Item_Menu::render(World* world) const
 State_Machine::Status_Menu::Status_Menu(const string & character_name)
 {
   long section_width{(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2) / 3};
-  Image image{LoadImageFromMemory(".png", binary_Image_simple_panel_png_start, reinterpret_cast<long>(&binary_Image_simple_panel_png_size))};
-  m_panel_texture = LoadTextureFromImage(image);
-  UnloadImage(image);
-  
   m_character_name = character_name;
   m_panel = new Panel;
   ++mem;
@@ -618,26 +550,68 @@ State_Machine::Status_Menu::Status_Menu(const string & character_name)
   m_selection->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 12);
   m_selection->set_spacing_x(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2);
 
-  m_hp = new Progress_Bar{HP_PROGRESS, section_width - STATUS_PROGRESS_BAR_PADDING};
-  m_mp = new Progress_Bar{MP_PROGRESS, section_width - STATUS_PROGRESS_BAR_PADDING};
-  m_exp = new Progress_Bar{EXP_PROGRESS, section_width - STATUS_PROGRESS_BAR_PADDING};
-  m_soul_break = new Progress_Bar{SOUL_BREAK_PROGRESS, section_width - STATUS_PROGRESS_BAR_PADDING};
-  m_scroll = new Progress_Bar{SCROLL_PROGRESS, section_width - STATUS_PROGRESS_BAR_PADDING};
+  m_hp = new Progress_Bar{"Progress Bar Background", "Progress Bar Green", section_width - STATUS_PROGRESS_BAR_PADDING};
+  m_mp = new Progress_Bar{"Progress Bar Background", "Progress Bar Blue", section_width - STATUS_PROGRESS_BAR_PADDING};
+  m_exp = new Progress_Bar{"Progress Bar Background", "Progress Bar Pink", section_width - STATUS_PROGRESS_BAR_PADDING};
+  m_soul_break = new Progress_Bar{"Progress Bar Background", "Progress Bar Red", section_width - STATUS_PROGRESS_BAR_PADDING};
+  m_scroll = new Progress_Bar{"Progress Bar Background", "Progress Bar Orange", section_width - STATUS_PROGRESS_BAR_PADDING};
   ++mem;
   ++mem;
   ++mem;
   ++mem;
   ++mem;
+
+  m_weapons = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_EQUIPMENT_MENU_COLUMNS, NUM_EQUIPMENT_MENU_ROWS, NUM_EQUIPMENT_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Weapons"};
+  m_weapons->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_weapons->set_spacing_x(section_width);
+  m_shields = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_EQUIPMENT_MENU_COLUMNS, NUM_EQUIPMENT_MENU_ROWS, NUM_EQUIPMENT_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Shields"};
+  m_shields->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_shields->set_spacing_x(section_width);
+  m_helms = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_EQUIPMENT_MENU_COLUMNS, NUM_EQUIPMENT_MENU_ROWS, NUM_EQUIPMENT_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Helms"};
+  m_helms->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_helms->set_spacing_x(section_width);
+  m_armor = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_EQUIPMENT_MENU_COLUMNS, NUM_EQUIPMENT_MENU_ROWS, NUM_EQUIPMENT_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Armor"};
+  m_armor->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_armor->set_spacing_x(section_width);
+  m_accessories = new Selection{to_pointers(ITEM_MENU_CHOICES), NUM_EQUIPMENT_MENU_COLUMNS, NUM_EQUIPMENT_MENU_ROWS, NUM_EQUIPMENT_MENU_ROWS, TEXT_FONT_HEIGHT, false, false, "Accessories"};
+  m_accessories->set_position(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
+  m_accessories->set_spacing_x(section_width);
+  ++mem;
+  ++mem;
+  ++mem;
+  ++mem;
+  ++mem;
+
+  m_equipment_panel = new Panel;
+  ++mem;
+  m_equipment_panel->set_position(TEXTBOX_PADDING_SCREEN, TEXTBOX_PADDING_SCREEN_Y, section_width, TEXTBOX_PADDING_SHORT * 2 + TEXT_FONT_HEIGHT * 9);
 }
 
 State_Machine::Status_Menu::~Status_Menu()
 {
-  UnloadTexture(m_panel_texture);
   delete m_panel;
   m_panel = nullptr;
   --mem;
+  delete m_equipment_panel;
+  m_equipment_panel = nullptr;
+  --mem;
   delete m_selection;
   m_selection = nullptr;
+  --mem;
+  delete m_weapons;
+  m_weapons = nullptr;
+  --mem;
+  delete m_shields;
+  m_shields = nullptr;
+  --mem;
+  delete m_helms;
+  m_helms = nullptr;
+  --mem;
+  delete m_armor;
+  m_armor = nullptr;
+  --mem;
+  delete m_accessories;
+  m_accessories = nullptr;
   --mem;
   delete m_hp;
   delete m_mp;
@@ -658,25 +632,260 @@ State_Machine::Status_Menu::~Status_Menu()
 
 void State_Machine::Status_Menu::update_input(State_Machine* machine, World* world)
 {
-  if(IsKeyPressed(KEY_X) == true/* && m_category->cursor_shown() == true*/)
+  if(IsKeyPressed(KEY_X) == true && m_selection->cursor_shown() == true)
   {
     world->play_global_sound("Back");
     machine->set_next_state(State_Machine::FRONT_MENU_STATE);
   }
-  if(IsKeyPressed(KEY_Z) == true)
+  else if(IsKeyPressed(KEY_W) == true && m_selection->cursor_shown() == true)
   {
-    world->play_global_sound("Buzzer");
+    world->play_global_sound("Cursor");
+    m_character_name = world->get_next_party_member_name(m_character_name);
   }
+  else if(IsKeyPressed(KEY_Q) == true && m_selection->cursor_shown() == true)
+  {
+    world->play_global_sound("Cursor");
+    m_character_name = world->get_previous_party_member_name(m_character_name);
+  }
+
+  long highlighted_item{0};
+
+  m_selection->update_input(world);
+  m_weapons->update_input(world);
+  m_shields->update_input(world);
+  m_helms->update_input(world);
+  m_armor->update_input(world);
+  m_accessories->update_input(world);
+
+  if(m_selection->cursor_shown() == true)
+  {
+    m_weapons->hide_menu();
+    m_shields->hide_menu();
+    m_helms->hide_menu();
+    m_armor->hide_menu();
+    m_accessories->hide_menu();
+    highlighted_item = m_selection->get_highlighted_item();
+
+    if(IsKeyPressed(KEY_Z) == true)
+    {
+      switch(highlighted_item)
+      {
+        case 2:
+          if(world->has_weapons() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_weapons->show_menu();
+            m_weapons->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 5:
+          if(world->has_shields() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_shields->show_menu();
+            m_shields->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 8:
+          if(world->has_helms() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_helms->show_menu();
+            m_helms->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 11:
+          if(world->has_armor() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_armor->show_menu();
+            m_armor->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 14:
+          if(world->has_accessories() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_accessories->show_menu();
+            m_accessories->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        case 17:
+          if(world->has_accessories() == true)
+          {
+            world->play_global_sound("Confirm");
+            m_selection->hide_cursor();
+            m_accessories->show_menu();
+            m_accessories->show_cursor();
+          }
+          else
+          {
+            world->play_global_sound("Buzzer");
+          }
+          break;
+        default:
+          world->play_global_sound("Buzzer");
+          break;
+      }
+    }
+  }
+  else if(m_weapons->cursor_shown() == true || m_shields->cursor_shown() == true || m_helms->cursor_shown() == true || m_armor->cursor_shown() == true || m_accessories->cursor_shown() == true)
+  {
+    if(IsKeyPressed(KEY_X) == true)
+    {
+      world->play_global_sound("Back");
+      m_weapons->hide_menu();
+      m_shields->hide_menu();
+      m_helms->hide_menu();
+      m_armor->hide_menu();
+      m_accessories->hide_menu();
+      m_selection->show_cursor();
+    }
+    else if(m_weapons->cursor_shown() == true)
+    {
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        if(world->can_use_weapon(m_character_name, m_weapons->get_highlighted_item()) == true)
+        {
+          world->play_global_sound("Confirm");
+          string selected_item_s{m_weapons->get_highlighted_item_string()};
+          world->equip(world, m_character_name, selected_item_s);
+        }
+        else
+        {
+          world->play_global_sound("Buzzer");
+        }
+      }
+      if(world->has_weapons() == false)
+      {
+        m_weapons->hide_menu();
+        m_selection->show_cursor();
+      }
+    }
+
+    else if(m_shields->cursor_shown() == true)
+    {
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        if(world->can_use_shield(m_character_name, m_shields->get_highlighted_item()) == true)
+        {
+          world->play_global_sound("Confirm");
+          string selected_item_s{m_shields->get_highlighted_item_string()};
+          world->equip(world, m_character_name, selected_item_s);
+        }
+        else
+        {
+          world->play_global_sound("Buzzer");
+        }
+      }
+      if(world->has_shields() == false)
+      {
+        m_shields->hide_menu();
+        m_selection->show_cursor();
+      }
+    }
+
+    else if(m_helms->cursor_shown() == true)
+    {
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        if(world->can_use_helm(m_character_name, m_helms->get_highlighted_item()) == true)
+        {
+          world->play_global_sound("Confirm");
+          string selected_item_s{m_helms->get_highlighted_item_string()};
+          world->equip(world, m_character_name, selected_item_s);
+        }
+        else
+        {
+          world->play_global_sound("Buzzer");
+        }
+      }
+      if(world->has_helms() == false)
+      {
+        m_helms->hide_menu();
+        m_selection->show_cursor();
+      }
+    }
+
+    else if(m_armor->cursor_shown() == true)
+    {
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        if(world->can_use_armor(m_character_name, m_armor->get_highlighted_item()) == true)
+        {
+          world->play_global_sound("Confirm");
+          string selected_item_s{m_armor->get_highlighted_item_string()};
+          world->equip(world, m_character_name, selected_item_s);
+        }
+        else
+        {
+          world->play_global_sound("Buzzer");
+        }
+      }
+      if(world->has_armor() == false)
+      {
+        m_armor->hide_menu();
+        m_selection->show_cursor();
+      }
+    }
+
+    else if(m_accessories->cursor_shown() == true)
+    {
+      if(IsKeyPressed(KEY_Z) == true)
+      {
+        if(world->can_use_accessory(m_character_name, m_accessories->get_highlighted_item()) == true)
+        {
+          world->play_global_sound("Confirm");
+          string selected_item_s{m_accessories->get_highlighted_item_string()};
+          world->equip(world, m_character_name, selected_item_s);
+        }
+        else
+        {
+          world->play_global_sound("Buzzer");
+        }
+      }
+      if(world->has_accessories() == false)
+      {
+        m_accessories->hide_menu();
+        m_selection->show_cursor();
+      }
+    }
+  }
+
   m_hp->set_value(world->get_party_member_unmodified_stat(m_character_name, "HP"), world->get_party_member_stat(m_character_name, "Max HP"));
   m_mp->set_value(world->get_party_member_unmodified_stat(m_character_name, "MP"), world->get_party_member_stat(m_character_name, "Max MP"));
   m_exp->set_value(world->get_party_member_unmodified_stat(m_character_name, "EXP"), world->get_party_member_unmodified_stat(m_character_name, "Next Level Total EXP"), world->get_party_member_unmodified_stat(m_character_name, "Current Level Starting EXP"));
-  m_selection->update_input(world);
 }
 
 void State_Machine::Status_Menu::render(World* world) const
 {
   long section_width{(SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2 - TEXTBOX_PADDING_LONG * 2) / 3};
-  m_panel->render(m_panel_texture);
+  m_panel->render(world);
   m_selection->render(world, m_character_name);
   world->render_party_member_portrait(m_character_name, 1, TEXTBOX_PADDING_LONG + TEXTBOX_PADDING_SCREEN, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y);
   world->render_text(0, m_character_name + " Lv. " + to_string(world->get_party_member_unmodified_stat(m_character_name, "Level")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y);
@@ -684,8 +893,8 @@ void State_Machine::Status_Menu::render(World* world) const
   world->render_text(0, world->get_party_member_class(m_character_name), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SHORT + TEXTBOX_PADDING_SCREEN_Y + TEXT_FONT_HEIGHT * 2);
   world->render_text(0, "HP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "HP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max HP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   world->render_text(0, "MP                " + to_string(world->get_party_member_unmodified_stat(m_character_name, "MP")) + "/" + to_string(world->get_party_member_stat(m_character_name, "Max MP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  m_hp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_mp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_hp->render(world, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_mp->render(world, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   world->render_text(0, "Status: Normal", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 5);
   world->render_text(0, "Scroll", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4);
   world->render_text(0, "Total EXP          " + to_string(world->get_party_member_unmodified_stat(m_character_name, "EXP")), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT);
@@ -693,9 +902,41 @@ void State_Machine::Status_Menu::render(World* world) const
   world->render_text(0, "Soul Break Level  " + to_string(world->get_party_member_soul_break_level(m_character_name)), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   world->render_text(0, "AP                   0/10", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   world->render_text(0, "Equipment", TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
-  m_exp->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_soul_break->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_scroll->render(TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  world->render_text(0, STAT_DESCRIPTIONS_LINE_1[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
-  world->render_text(0, STAT_DESCRIPTIONS_LINE_2[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
+  m_exp->render(world, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_soul_break->render(world, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_scroll->render(world, TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG + section_width * 2, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 4 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  if(m_selection->cursor_shown() == true)
+  {
+    world->render_text(0, STAT_DESCRIPTIONS_LINE_1[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    world->render_text(0, STAT_DESCRIPTIONS_LINE_2[m_selection->get_highlighted_item()], TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 11);
+  }
+  else
+  {
+    m_equipment_panel->render(world);
+    if(m_weapons->cursor_shown() == true)
+    {
+      world->render_text(0, world->get_item_description(m_weapons->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    }
+    if(m_shields->cursor_shown() == true)
+    {
+      world->render_text(0, world->get_item_description(m_shields->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    }
+    if(m_helms->cursor_shown() == true)
+    {
+      world->render_text(0, world->get_item_description(m_helms->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    }
+    if(m_armor->cursor_shown() == true)
+    {
+      world->render_text(0, world->get_item_description(m_armor->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    }
+    if(m_accessories->cursor_shown() == true)
+    {
+      world->render_text(0, world->get_item_description(m_accessories->get_highlighted_item_string()), TEXTBOX_PADDING_SCREEN + TEXTBOX_PADDING_LONG, TEXTBOX_PADDING_SCREEN_Y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 10);
+    }
+  }
+  m_weapons->render(world, m_character_name);
+  m_shields->render(world, m_character_name);
+  m_helms->render(world, m_character_name);
+  m_armor->render(world, m_character_name);
+  m_accessories->render(world, m_character_name);
 }

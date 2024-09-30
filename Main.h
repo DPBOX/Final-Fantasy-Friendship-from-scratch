@@ -11,6 +11,7 @@ using namespace std;
 #include <vector>
 #include <variant>
 #include <array>
+#include <cstdint>
 
 //Screen dimension constants
 const long SCREEN_WIDTH{480};
@@ -30,9 +31,11 @@ const string WINDOW_TEXT = "RPG";
 
 extern long mem;
 
+#include "Consts/Game_Consts.h"
 #include "Consts/Media.h"
-#include "Consts/Panel_Consts.h"
-#include "Consts/Hero_Consts.h"
+#include "Script_Structs.h"
+#include "Consts/Storyboard_Consts.h"
+#include "Consts/Map_Consts.h"
 #include "Functions.h"
 
 #endif

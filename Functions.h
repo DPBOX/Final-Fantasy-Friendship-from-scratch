@@ -1,6 +1,5 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
-#include "Music_Commands.h"
 
 long count_words(const string & text);
 

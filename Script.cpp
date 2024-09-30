@@ -1,6 +1,5 @@
 #include "Main.h"
 #include "Tilemap.h"
-#include "Consts/Map_Consts.h"
 
 Map_Handler::Script::~Script()
 {
@@ -153,6 +152,12 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++m_inner_index;
             ++m_inner_index2;
             break;
+
+          case Script_Op::Add_Equipment:
+            world->add_equipment(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
         
           case Script_Op::Check_Entity_Position:
             if(map_handler->check_entity_position(get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_x, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_y) == true)
@@ -261,7 +266,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++mem;
             m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
             m_textbox->add_title(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name);
-            m_textbox->add_portrait(binary_Image_tempest_small_portrait_png_start, reinterpret_cast<long>(&binary_Image_tempest_small_portrait_png_size));
+            m_textbox->add_portrait(TEMPEST_SMALL_PORTRAIT_IMAGE);
             m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4, world);
             ++m_inner_index;
             break;

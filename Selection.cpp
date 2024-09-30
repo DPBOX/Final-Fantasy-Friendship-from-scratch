@@ -24,9 +24,6 @@ void Selection<string>::render_item(World* world, const long & font, const long 
 template <>
 void Selection<string>::update_input(World* world)
 {
-  m_show_cursor = m_queue_show_cursor;
-  m_show_menu = m_queue_show_menu;
-  
   if(m_render_mode == "Items")
   {
     for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
@@ -37,7 +34,7 @@ void Selection<string>::update_input(World* world)
     }
     m_choices = to_pointers(world->get_items());
   }
-  if(m_render_mode == "Equipment")
+  if(m_render_mode == "Weapons")
   {
     for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
     {
@@ -45,7 +42,47 @@ void Selection<string>::update_input(World* world)
       m_choices[i] = nullptr;
       --mem;
     }
-    m_choices = to_pointers(world->get_equipment());
+    m_choices = to_pointers(world->get_weapons());
+  }
+  if(m_render_mode == "Shields")
+  {
+    for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
+    {
+      delete m_choices[i];
+      m_choices[i] = nullptr;
+      --mem;
+    }
+    m_choices = to_pointers(world->get_shields());
+  }
+  if(m_render_mode == "Helms")
+  {
+    for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
+    {
+      delete m_choices[i];
+      m_choices[i] = nullptr;
+      --mem;
+    }
+    m_choices = to_pointers(world->get_helms());
+  }
+  if(m_render_mode == "Armor")
+  {
+    for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
+    {
+      delete m_choices[i];
+      m_choices[i] = nullptr;
+      --mem;
+    }
+    m_choices = to_pointers(world->get_armor());
+  }
+  if(m_render_mode == "Accessories")
+  {
+    for(long i{0}; i < static_cast<long>(m_choices.size()); ++i)
+    {
+      delete m_choices[i];
+      m_choices[i] = nullptr;
+      --mem;
+    }
+    m_choices = to_pointers(world->get_accessories());
   }
   if(m_render_mode == "Key Items")
   {
@@ -153,9 +190,6 @@ void Selection<string>::update_input(World* world)
 template <>
 void Selection<Player_Summary>::update_input(World* world)
 {
-  m_show_cursor = m_queue_show_cursor;
-  m_show_menu = m_queue_show_menu;
-
   if(m_show_cursor == true)
   {
     if(m_focus_x + m_focus_y * m_columns >= static_cast<long>(m_choices.size()))
@@ -260,9 +294,60 @@ void Selection<string>::render(World* world, const string & party_member_name) c
         {
           world->render_item(x, y, 0, item_index, m_spacing_x);
         }
-        else if(m_render_mode == "Equipment")
+        else if(m_render_mode == "Weapons")
         {
-          world->render_equipment(x, y, 0, item_index, m_spacing_x);
+          if(world->can_use_weapon(party_member_name, item_index))
+          {
+            world->render_weapon(x, y, 0, item_index, m_spacing_x);
+          }
+          else
+          {
+            world->render_weapon(x, y, 3, item_index, m_spacing_x);
+          }
+        }
+        else if(m_render_mode == "Shields")
+        {
+          if(world->can_use_shield(party_member_name, item_index))
+          {
+            world->render_shield(x, y, 0, item_index, m_spacing_x);
+          }
+          else
+          {
+            world->render_shield(x, y, 3, item_index, m_spacing_x);
+          }
+        }
+        else if(m_render_mode == "Helms")
+        {
+          if(world->can_use_helm(party_member_name, item_index))
+          {
+            world->render_helm(x, y, 0, item_index, m_spacing_x);
+          }
+          else
+          {
+            world->render_helm(x, y, 3, item_index, m_spacing_x);
+          }
+        }
+        else if(m_render_mode == "Armor")
+        {
+          if(world->can_use_armor(party_member_name, item_index))
+          {
+            world->render_armor(x, y, 0, item_index, m_spacing_x);
+          }
+          else
+          {
+            world->render_armor(x, y, 3, item_index, m_spacing_x);
+          }
+        }
+        else if(m_render_mode == "Accessories")
+        {
+          if(world->can_use_accessory(party_member_name, item_index))
+          {
+            world->render_accessory(x, y, 0, item_index, m_spacing_x);
+          }
+          else
+          {
+            world->render_accessory(x, y, 3, item_index, m_spacing_x);
+          }
         }
         else if(m_render_mode == "Key Items")
         {
@@ -272,6 +357,10 @@ void Selection<string>::render(World* world, const string & party_member_name) c
         {
           render_item(world, 0, x, y, item_index);
           world->render_stat(x, y, 0, item_index, m_spacing_x, party_member_name);
+        }
+        else
+        {
+          crash("Error: Invalid render mode \"m_render_mode\".");
         }
         x += m_spacing_x;
         ++item_index;

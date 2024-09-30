@@ -97,6 +97,12 @@ void Map_Handler::add_map(const Map_Data & map_data, Map_Handler* map_handler)
       ++mem;
       m_entity_list.push_back(npc);
     }
+    else if(map_data.m_npc_list[i].m_start_state == "Treasure Chest")
+    {
+      Entity* npc{new Treasure_Chest(map_handler, map_data.m_npc_list[i])};
+      ++mem;
+      m_entity_list.push_back(npc);
+    }
     else
     {
       crash("Error: Invalid NPC type \"" + map_data.m_npc_list[i].m_start_state + "\".");
@@ -249,7 +255,7 @@ void Map_Handler::hide_npc(const string & npc_id)
 
 bool Map_Handler::is_blocked(const long & x, const long & y, const long & layer) const
 {
-  if(m_map->get_collision(x, y, layer) == true)
+  if(x < 0 || x >= m_map->m_map_width || y < 0 || y >= m_map->m_map_height || m_map->get_collision(x, y, layer) == true)
   {
     return true;
   }

@@ -65,45 +65,25 @@ void Fnt::render_letter(const long & x, const long & y, const char & id, const l
   DrawTexturePro(m_font_img, Rectangle{static_cast<float>(m_cell_width * id), 0, static_cast<float>(m_cell_width), static_cast<float>(m_font_img.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y), static_cast<float>(m_cell_width), static_cast<float>(m_font_img.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(alpha)});
 }
 
-Progress_Bar::Progress_Bar(const Progress_Bar_Assets & media, const long & length, const long & padding_x, const long & padding_y)
-{
-  m_length = length;
-  m_padding_x = padding_x;
-  m_padding_y = padding_y;
-  Image image{LoadImageFromMemory(".png", media.m_background_data, media.m_background_size)};
-  m_background = LoadTextureFromImage(image);
-  UnloadImage(image);
-  
-  Image image2{LoadImageFromMemory(".png", media.m_bar_data, media.m_bar_size)};
-  m_foreground = LoadTextureFromImage(image2);
-  UnloadImage(image2);
-}
-
-Progress_Bar::~Progress_Bar()
-{
-  UnloadTexture(m_foreground);
-  UnloadTexture(m_background);
-}
-
 void Progress_Bar::set_value(const long & value, const long & maximum, const long & minimum)
 {
   m_value = static_cast<double>(value - minimum) / (maximum - minimum) * MAX_PROGRESS_BAR_VALUE;
 }
 
-void Progress_Bar::render(const long & x, const long & y) const
+void Progress_Bar::render(World* world, const long & x, const long & y) const
 {
   for(long i{0}; i < m_length; ++i)
   {
-    DrawTexturePro(m_background, Rectangle{0, 0, static_cast<float>(m_background.width), static_cast<float>(m_background.height)}, Rectangle{static_cast<float>(x + i), static_cast<float>(y), static_cast<float>(m_background.width), static_cast<float>(m_background.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    world->render_progress_bar(m_background_image_name, x + i, y);
   }
 
   if(m_value > 0)
   {
-    if(m_value == MAX_PROGRESS_BAR_VALUE)
+    if(m_value >= MAX_PROGRESS_BAR_VALUE)
     {
       for(long i{0}; i < m_length; ++i)
       {
-        DrawTexturePro(m_foreground, Rectangle{0, 0, static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Rectangle{static_cast<float>(x + i), static_cast<float>(y), static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+        world->render_progress_bar(m_bar_image_name, x + i, y);
       }
     }
     else
@@ -112,35 +92,24 @@ void Progress_Bar::render(const long & x, const long & y) const
 
       if(value <= 0)
       {
-        DrawTexturePro(m_foreground, Rectangle{0, 0, static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y), static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+        world->render_progress_bar(m_bar_image_name, x, y);
       }
       else if(value >= m_length)
       {
         for(long i{0}; i < m_length - 1; ++i)
         {
-          DrawTexturePro(m_foreground, Rectangle{0, 0, static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Rectangle{static_cast<float>(x + i), static_cast<float>(y), static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+          world->render_progress_bar(m_bar_image_name, x + i, y);
         }
       }
       else
       {
         for(long i{0}; i < value; ++i)
         {
-          DrawTexturePro(m_foreground, Rectangle{0, 0, static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Rectangle{static_cast<float>(x + i), static_cast<float>(y), static_cast<float>(m_foreground.width), static_cast<float>(m_foreground.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+          world->render_progress_bar(m_bar_image_name, x + i, y);
         }
       }
     }
   }
-}
-
-Textbox::Textbox()
-{
-  Image image{LoadImageFromMemory(".png", binary_Image_simple_panel_png_start, reinterpret_cast<long>(&binary_Image_simple_panel_png_size))};
-  m_panel_texture = LoadTextureFromImage(image);
-  UnloadImage(image);
-  
-  Image image2{LoadImageFromMemory(".png", binary_Image_continue_arrow_png_start, reinterpret_cast<long>(&binary_Image_continue_arrow_png_size))};
-  m_arrow_texture = LoadTextureFromImage(image2);
-  UnloadImage(image2);
 }
 
 void Textbox::add_text(const string & text)
@@ -153,11 +122,11 @@ void Textbox::add_title(const string & title)
   m_title_text = title;
 }
 
-void Textbox::add_portrait(const unsigned char* data, const long & size)
+void Textbox::add_portrait(const Image_Params & image)
 {
-  Image image{LoadImageFromMemory(".png", data, size)};
-  m_portrait_img = LoadTextureFromImage(image);
-  UnloadImage(image);
+  Image the_image{LoadImageFromMemory(".png", image.m_data, image.m_size)};
+  m_portrait_img = LoadTextureFromImage(the_image);
+  UnloadImage(the_image);
 }
 
 void Textbox::add_selection_menu(Selection<string>* s)
@@ -253,8 +222,6 @@ Textbox::~Textbox()
   {
     UnloadTexture(m_portrait_img);
   }
-  UnloadTexture(m_panel_texture);
-  UnloadTexture(m_arrow_texture);
 }
 
 void Textbox::update_input(World* world)
@@ -324,7 +291,7 @@ void Textbox::render(World* world) const
 {
   if(m_start == true && m_dead == false)
   {
-    m_panel->render(m_panel_texture);
+    m_panel->render(world);
     if(m_expanded == true && m_shrink == false)
     {
       render_textbox(m_text_chunks[0], world, 0);
@@ -340,7 +307,10 @@ void Textbox::render(World* world) const
       {
         m_selection->render(world);
       }
-      DrawTexturePro(m_arrow_texture, Rectangle{static_cast<float>(m_continue_arrow_animation.get_frame() * static_cast<float>(m_arrow_texture.width) / m_continue_arrow_animation.get_frames()), 0, static_cast<float>(static_cast<float>(m_arrow_texture.width) / m_continue_arrow_animation.get_frames()), static_cast<float>(m_arrow_texture.height)}, Rectangle{static_cast<float>(m_size_x + m_size_w / 2.0 - m_arrow_texture.width / m_continue_arrow_animation.get_frames() / 2.0), static_cast<float>(m_size_y + m_size_h), static_cast<float>(static_cast<float>(m_arrow_texture.width) / m_continue_arrow_animation.get_frames()), static_cast<float>(m_arrow_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+      if(m_continue_arrow_animation.get_frame() == 1)
+      {
+        world->render_continue_arrow(m_size_x + m_size_w / 2.0, m_size_y + m_size_h);
+      }
     }
   }
 }
@@ -520,22 +490,9 @@ void Panel::set_position(const double & x, const double & y, const double & widt
   m_h = height;
 }
 
-void Panel::render(const Texture2D & panel_texture) const
+void Panel::render(World* world) const
 {
-  // corners
-  DrawTexturePro(panel_texture, Rectangle{0, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x), static_cast<float>(m_y), PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 2, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + m_w - PANEL_TILE_WIDTH), static_cast<float>(m_y), PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 6, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x), static_cast<float>(m_y + m_h - panel_texture.height), PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 8, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + m_w - PANEL_TILE_WIDTH), static_cast<float>(m_y + m_h - panel_texture.height), PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-
-  // edges
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + PANEL_TILE_WIDTH), static_cast<float>(m_y), static_cast<float>(m_w - PANEL_TILE_WIDTH * 2), static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 3, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x), static_cast<float>(m_y + panel_texture.height), PANEL_TILE_WIDTH, static_cast<float>(m_h - panel_texture.height * 2)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 5, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + m_w - PANEL_TILE_WIDTH), static_cast<float>(m_y + panel_texture.height), PANEL_TILE_WIDTH, static_cast<float>(m_h - panel_texture.height * 2)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 7, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + PANEL_TILE_WIDTH), static_cast<float>(m_y + m_h - panel_texture.height), static_cast<float>(m_w - PANEL_TILE_WIDTH * 2), static_cast<float>(panel_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-
-  // middle
-  DrawTexturePro(panel_texture, Rectangle{PANEL_TILE_WIDTH * 4, 0, PANEL_TILE_WIDTH, static_cast<float>(panel_texture.height)}, Rectangle{static_cast<float>(m_x + PANEL_TILE_WIDTH), static_cast<float>(m_y + panel_texture.height), static_cast<float>(m_w - PANEL_TILE_WIDTH * 2), static_cast<float>(m_h - panel_texture.height * 2)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, PANEL_ALPHA});
+  world->render_panel(m_x, m_y, m_w, m_h);
 }
 
 Player_Summary::Player_Summary(const long & x, const long & y, const string & party_member_name, const bool & row)
@@ -547,11 +504,11 @@ Player_Summary::Player_Summary(const long & x, const long & y, const string & pa
   m_player_name = party_member_name;
   m_portrait_tween_current = row == true ? 0 : PLAYER_SUMMARY_ROW_OFFSET;
   m_portrait_tween_end = row == true ? 0 : PLAYER_SUMMARY_ROW_OFFSET;
-  m_hp = new Progress_Bar{HP_PROGRESS, PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
-  m_mp = new Progress_Bar{MP_PROGRESS, PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
-  m_exp = new Progress_Bar{EXP_PROGRESS, PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
-  m_soul_break = new Progress_Bar{SOUL_BREAK_PROGRESS, PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
-  m_scroll = new Progress_Bar{SCROLL_PROGRESS, PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
+  m_hp = new Progress_Bar{"Progress Bar Background", "Progress Bar Green", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
+  m_mp = new Progress_Bar{"Progress Bar Background", "Progress Bar Blue", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
+  m_exp = new Progress_Bar{"Progress Bar Background", "Progress Bar Pink", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
+  m_soul_break = new Progress_Bar{"Progress Bar Background", "Progress Bar Red", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
+  m_scroll = new Progress_Bar{"Progress Bar Background", "Progress Bar Orange", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH};
   ++mem;
   ++mem;
   ++mem;
@@ -601,7 +558,7 @@ void Player_Summary::update_tweens(World* world)
   m_mp->set_value(world->get_party_member_unmodified_stat(m_player_name, "MP"), world->get_party_member_stat(m_player_name, "Max MP"));
   m_exp->set_value(world->get_party_member_unmodified_stat(m_player_name, "EXP"), world->get_party_member_unmodified_stat(m_player_name, "Next Level Total EXP"), world->get_party_member_unmodified_stat(m_player_name, "Current Level Starting EXP"));
 
-  if(m_portrait_tween_current != m_portrait_tween_end)
+  if(m_portrait_tween_current < m_portrait_tween_end - .001 || m_portrait_tween_current > m_portrait_tween_end + .001)
   {
     if(m_portrait_tween_current >= m_portrait_tween_end)
     {
@@ -621,7 +578,7 @@ void Player_Summary::update_tweens(World* world)
     }
   }
   
-  if(m_y_tween_current != m_y_tween_end)
+  if(m_y_tween_current < m_y_tween_end - .001 || m_y_tween_current > m_y_tween_end + .001)
   {
     if(m_y_tween_current >= m_y_tween_end)
     {
@@ -662,11 +619,11 @@ void Player_Summary::render(World* world) const
   world->render_text(0, "Scroll", m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   world->render_text(0, "EXP " + to_string(world->get_party_member_unmodified_stat(m_player_name, "EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT);
   world->render_text(0, "Next Lv. " + to_string(world->get_party_member_unmodified_stat(m_player_name, "Next Level EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  m_hp->render(m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_mp->render(m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_exp->render(m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_soul_break->render(m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
-  m_scroll->render(m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_hp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_mp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_exp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_soul_break->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
+  m_scroll->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
 }
 
 Player_Summary::~Player_Summary()
