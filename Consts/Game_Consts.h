@@ -84,11 +84,15 @@ const double ITEM_QUANTITY_LOCATION_FRACTION{.75};
 const double STAT_LOCATION_FRACTION{.5};
 const long ICON_WIDTH{18};
 const long ITEM_MENU_ROWS{15};
+const long MAX_ITEM_MENU_ROWS{500};
 const long NUM_ITEM_MENU_COLUMNS{2};
 const long STATUS_MENU_ROWS{6};
 const long NUM_STATUS_MENU_COLUMNS{3};
 
+const long MAX_PARTY_SIZE{3};
+
 const long NUM_EQUIPMENT_MENU_COLUMNS{1};
+const long MAX_NUM_EQUIPMENT_MENU_ROWS{500};
 const long NUM_EQUIPMENT_MENU_ROWS{9};
 
 const long HERO_WIDTH{48};
@@ -113,6 +117,8 @@ const long DEFAULT_ATTACK{1};
 const long DEFAULT_ACCURACY{100};
 const long EXP_BASE{40};
 const long EXP_INFLATION{40};
+
+const long BATTLE_TRANSITION_FRAMES{600};
 
 const array<long, MAX_LEVEL> TEMPEST_SPIRIT_GROWTH{11, 12, 12, 13, 14, 14, 15, 15, 16, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 23, 23, 24, 24, 24, 25, 25, 26, 27, 28, 28, 29, 29, 29, 30, 30, 31, 32, 32, 33, 34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 40, 40, 40, 41, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 45, 46, 46, 47, 48, 48, 48, 48, 49, 49, 50, 50, 51, 51, 51, 51, 52, 52, 52, 52, 53, 53, 54, 55, 56, 56, 56, 56, 57, 58, 58, 59, 59, 59, 60, 60};
 const array<long, MAX_LEVEL> TEMPEST_STAMINA_GROWTH{13, 14, 15, 15, 16, 17, 17, 18, 18, 19, 20, 20, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 27, 27, 28, 28, 29, 30, 30, 31, 32, 32, 33, 34, 35, 36, 36, 37, 38, 39, 40, 41, 41, 42, 42, 43, 44, 44, 44, 45, 46, 47, 48, 48, 49, 50, 51, 52, 52, 53, 53, 54, 55, 56, 56, 57, 57, 58, 58, 59, 59, 59, 60, 60, 60, 61, 61, 61, 62, 62, 63, 64, 64, 64, 65, 66, 67, 68, 68, 69, 69, 70, 70, 71, 71, 72, 72, 72, 73};

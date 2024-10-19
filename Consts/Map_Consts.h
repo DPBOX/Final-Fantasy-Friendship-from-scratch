@@ -194,7 +194,7 @@ struct Trigger_Data
 struct Map_Data
 {
   explicit Map_Data(){}
-  explicit Map_Data(const long & map_width, const long & map_height, const long & tile_width, const string & id, const Image_Params & image, const bool & show_hero, const Hero_Data & hero_data, const vector<NPC_Data> & npc_data, const vector<Trigger_Data> & trigger_list, const vector<array<vector<long>, 2>> & tile_map, const vector<vector<bool>> & collision_map, const vector<Scr> & scripts)
+  explicit Map_Data(const long & map_width, const long & map_height, const long & tile_width, const string & id, const Image_Params & image, const bool & show_hero, const string & music_name, const Hero_Data & hero_data, const vector<NPC_Data> & npc_data, const vector<Trigger_Data> & trigger_list, const vector<array<vector<long>, 2>> & tile_map, const vector<vector<bool>> & collision_map, const vector<Scr> & scripts)
   {
     m_map_width = map_width;
     m_map_height = map_height;
@@ -202,6 +202,7 @@ struct Map_Data
     m_id = id;
     m_img_size = image.m_size;
     m_show_hero = show_hero;
+    m_music = music_name;
     m_hero_data = hero_data;
     m_npc_list = npc_data;
     m_trigger_list = trigger_list;
@@ -231,6 +232,7 @@ struct Map_Data
       m_id = obj.m_id;
       m_img_size = obj.m_img_size;
       m_show_hero = obj.m_show_hero;
+      m_music = obj.m_music;
       m_hero_data = obj.m_hero_data;
       m_npc_list = obj.m_npc_list;
       m_trigger_list = obj.m_trigger_list;
@@ -257,6 +259,7 @@ struct Map_Data
   unsigned char* m_img_data{nullptr};
   long m_img_size{0};
   bool m_show_hero{false};
+  string m_music{"City"};
   Hero_Data m_hero_data{};
   vector<NPC_Data> m_npc_list{};
   vector<Trigger_Data> m_trigger_list{};
@@ -278,7 +281,7 @@ const vector<Map_Data> MAPS
 {
   Map_Data
   {
-    40, 32, 16, "Battle Testing", BATTLE_TESTING_MAP_IMAGE, true,
+    40, 32, 16, "Battle Testing", BATTLE_TESTING_MAP_IMAGE, true, "City",
     Hero_Data{0, 20, 20, Direction::Down},
     vector<NPC_Data>
     {
@@ -287,7 +290,8 @@ const vector<Map_Data> MAPS
       {0, 32, 0, 0, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest1", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{4, 5}, vector<vector<long>>{}, vector<vector<Direction>>{}},
       {0, 32, 38, 18, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest2", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{6, 5}, vector<vector<long>>{}, vector<vector<Direction>>{}},
       {0, 32, 0, 26, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest3", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{7, 5}, vector<vector<long>>{}, vector<vector<Direction>>{}},
-      {0, 32, 38, 0, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest4", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{8, 5}, vector<vector<long>>{}, vector<vector<Direction>>{}}
+      {0, 32, 38, 0, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest4", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{8, 5}, vector<vector<long>>{}, vector<vector<Direction>>{}},
+      {0, 32, 18, 0, Direction::Down, "Treasure Chest", 3, false, false, false, 8, "Big Treasure Chest5", BIG_TREASURE_CHEST_IMAGE, NONE_EFFECT, vector<long>{9, 9}, vector<vector<long>>{}, vector<vector<Direction>>{}}
     },
     vector<Trigger_Data>{},
     vector<array<vector<long>, 2>>
@@ -684,12 +688,19 @@ const vector<Map_Data> MAPS
         {{{Script_Op::Add_Equipment, Name_Params{"Zephyr Cloak"}}}},
         {{{Script_Op::Add_Equipment, Name_Params{"Zephyr Cloak"}}}},
         {{{Script_Op::Add_Equipment, Name_Params{"Zephyr Cloak"}}}}
+      }},
+      {{
+        {{{Script_Op::Say_Choices, Say_Choices_Params{"Hero", "It's a Mimic! Battle it?", 8, -40, {"Yes", "No"}, {10, -1}}}}}
+      }},
+      {{
+        {{{Script_Op::Battle_Transition}}},
+        {{{Script_Op::Add_Game_State, Name_Params{"Battle"}}}}
       }}
     }
   },
   Map_Data
   {
-    40, 40, 16, "Arena Entrance", ENTRANCE_MAP_IMAGE, true,
+    40, 40, 16, "Arena Entrance", ENTRANCE_MAP_IMAGE, true, "City",
     Hero_Data{0, 20, 20, Direction::Down},
     vector<NPC_Data>{},
     vector<Trigger_Data>{},

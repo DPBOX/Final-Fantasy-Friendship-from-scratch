@@ -1,6 +1,18 @@
 #ifndef MEDIA_H
 #define MEDIA_H
 
+struct Music_Params
+{
+  explicit Music_Params(){}
+  explicit Music_Params(const string & name, const unsigned char data[], const long & size, const double volume = VOLUME_MAX) : m_name(name), m_data(data), m_size(size), m_volume(volume){}
+  explicit Music_Params(const Music_Params & obj) = delete;
+  Music_Params & operator =(const Music_Params & obj) = delete;
+  string m_name{"NULL"};
+  const unsigned char* m_data{nullptr};
+  long m_size{1};
+  double m_volume{1};
+};
+
 struct Sound_Params
 {
   explicit Sound_Params(){}
@@ -48,6 +60,9 @@ extern const unsigned char _binary_Image_text_font_yellow_png_end[];
 
 extern const unsigned char _binary_Image_text_font_red_png_start[];
 extern const unsigned char _binary_Image_text_font_red_png_end[];
+
+extern const unsigned char _binary_Image_text_font_green_png_start[];
+extern const unsigned char _binary_Image_text_font_green_png_end[];
 
 extern const unsigned char _binary_Image_text_font_tempest_png_start[];
 extern const unsigned char _binary_Image_text_font_tempest_png_end[];
@@ -183,6 +198,10 @@ extern const unsigned char _binary_Image_treasure_chest_png_end[];
 
 extern const unsigned char _binary_Image_big_treasure_chest_png_start[];
 extern const unsigned char _binary_Image_big_treasure_chest_png_end[];
+
+extern const unsigned char _binary_Music_city_mp3_start[];
+extern const unsigned char _binary_Music_city_mp3_end[];
+
 #endif
 
 #ifdef OS_WINDOWS
@@ -209,6 +228,9 @@ extern const unsigned char binary_Image_text_font_yellow_png_end[];
 
 extern const unsigned char binary_Image_text_font_red_png_start[];
 extern const unsigned char binary_Image_text_font_red_png_end[];
+
+extern const unsigned char binary_Image_text_font_green_png_start[];
+extern const unsigned char binary_Image_text_font_green_png_end[];
 
 extern const unsigned char binary_Image_text_font_tempest_png_start[];
 extern const unsigned char binary_Image_text_font_tempest_png_end[];
@@ -347,6 +369,8 @@ extern const unsigned char binary_Image_big_treasure_chest_png_end[];
 #endif
 
 #ifdef OS_LINUX
+const Music_Params CITY_MUSIC{"City", _binary_Music_city_mp3_start, static_cast<long>(_binary_Music_city_mp3_end - _binary_Music_city_mp3_start)};
+
 const Sound_Params CURSOR_SOUND{"Cursor", _binary_Sound_cursor_wav_start, static_cast<long>(_binary_Sound_cursor_wav_end - _binary_Sound_cursor_wav_start), .75};
 const Sound_Params CONFIRM_SOUND{"Confirm", _binary_Sound_confirm_wav_start, static_cast<long>(_binary_Sound_confirm_wav_end - _binary_Sound_confirm_wav_start)};
 const Sound_Params BACK_SOUND{"Back", _binary_Sound_back_wav_start, static_cast<long>(_binary_Sound_back_wav_end - _binary_Sound_back_wav_start)};
@@ -360,6 +384,7 @@ const Image_Params CONTINUE_ARROW_IMAGE{"Continue Arrow", _binary_Image_continue
 const Image_Params TEXT_FONT_IMAGE{"Text Font", _binary_Image_text_font_png_start, static_cast<long>(_binary_Image_text_font_png_end - _binary_Image_text_font_png_start)};
 const Image_Params TEXT_FONT_YELLOW_IMAGE{"Text Font Yellow", _binary_Image_text_font_yellow_png_start, static_cast<long>(_binary_Image_text_font_yellow_png_end - _binary_Image_text_font_yellow_png_start)};
 const Image_Params TEXT_FONT_RED_IMAGE{"Text Font Red", _binary_Image_text_font_red_png_start, static_cast<long>(_binary_Image_text_font_red_png_end - _binary_Image_text_font_red_png_start)};
+const Image_Params TEXT_FONT_GREEN_IMAGE{"Text Font Green", _binary_Image_text_font_green_png_start, static_cast<long>(_binary_Image_text_font_green_png_end - _binary_Image_text_font_green_png_start)};
 const Image_Params TEXT_FONT_TEMPEST_IMAGE{"Text Font Tempest", _binary_Image_text_font_tempest_png_start, static_cast<long>(_binary_Image_text_font_tempest_png_end - _binary_Image_text_font_tempest_png_start)};
 const Image_Params TEXT_FONT_NIGHTWISH_IMAGE{"Text Font Nightwish", _binary_Image_text_font_nightwish_png_start, static_cast<long>(_binary_Image_text_font_nightwish_png_end - _binary_Image_text_font_nightwish_png_start)};
 const Image_Params TEXT_FONT_GALLUS_IMAGE{"Text Font Gallus", _binary_Image_text_font_gallus_png_start, static_cast<long>(_binary_Image_text_font_gallus_png_end - _binary_Image_text_font_gallus_png_start)};
@@ -398,6 +423,7 @@ const Image_Params CONTINUE_ARROW_IMAGE{"Continue Arrow", binary_Image_continue_
 const Image_Params TEXT_FONT_IMAGE{"Text Font", binary_Image_text_font_png_start, static_cast<long>(binary_Image_text_font_png_end - binary_Image_text_font_png_start)};
 const Image_Params TEXT_FONT_YELLOW_IMAGE{"Text Font Yellow", binary_Image_text_font_yellow_png_start, static_cast<long>(binary_Image_text_font_yellow_png_end - binary_Image_text_font_yellow_png_start)};
 const Image_Params TEXT_FONT_RED_IMAGE{"Text Font Red", binary_Image_text_font_red_png_start, static_cast<long>(binary_Image_text_font_red_png_end - binary_Image_text_font_red_png_start)};
+const Image_Params TEXT_FONT_GREEN_IMAGE{"Text Font Green", binary_Image_text_font_green_png_start, static_cast<long>(binary_Image_text_font_green_png_end - binary_Image_text_font_green_png_start)};
 const Image_Params TEXT_FONT_TEMPEST_IMAGE{"Text Font Tempest", binary_Image_text_font_tempest_png_start, static_cast<long>(binary_Image_text_font_tempest_png_end - binary_Image_text_font_tempest_png_start)};
 const Image_Params TEXT_FONT_NIGHTWISH_IMAGE{"Text Font Nightwish", binary_Image_text_font_nightwish_png_start, static_cast<long>(binary_Image_text_font_nightwish_png_end - binary_Image_text_font_nightwish_png_start)};
 const Image_Params TEXT_FONT_GALLUS_IMAGE{"Text Font Gallus", binary_Image_text_font_gallus_png_start, static_cast<long>(binary_Image_text_font_gallus_png_end - binary_Image_text_font_gallus_png_start)};

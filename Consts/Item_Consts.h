@@ -1,7 +1,7 @@
 #ifndef ITEM_CONSTS
 #define ITEM_CONSTS
 
-m_item_database = vector<Item*>
+m_item_database.add(vector<Item*>
 {
   new Equipment{"Twilight Steel", "Weapon", "Tempest Shadow's initial weapon.", 0, vector<Stat_Modifier>{Stat_Modifier{"Twilight Steel Attack", "Attack", 38, true}, Stat_Modifier{"Twilight Steel Accuracy", "Accuracy", 150, true}, Stat_Modifier{"Twilight Steel Critical", "Critical", 7, false}}, vector<string>{"Tempest"}},
   new Equipment{"Mythril Sword", "Weapon", "A sword made of mythril for Tempest.", 0, vector<Stat_Modifier>{Stat_Modifier{"Mythril Sword Attack", "Attack", 48, true}, Stat_Modifier{"Mythril Sword Accuracy", "Accuracy", 200, true}, Stat_Modifier{"Mythril Sword Critical", "Critical", 2.0}}, vector<string>{"Tempest"}},
@@ -33,7 +33,31 @@ m_item_database = vector<Item*>
   new Consumable_Item{"Heal Potion", "Heals a little HP."},
   new Consumable_Item{"Money Bag", "Gives 50 Bits."},
   new Key_Item{"Old Bone", "A calcified pony femur."}
-};
+});
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
+++mem;
 ++mem;
 ++mem;
 ++mem;
