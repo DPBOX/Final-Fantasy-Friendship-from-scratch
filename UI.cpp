@@ -4,6 +4,7 @@
 
 Fnt::Fnt(const Font_Params & font_to_load)
 {
+  m_name = font_to_load.m_name;
   m_cell_width = font_to_load.m_cell_width;
   m_char_widths = font_to_load.m_char_widths;
   Image image{LoadImageFromMemory(".png", font_to_load.m_data, font_to_load.m_size)};
@@ -14,6 +15,11 @@ Fnt::Fnt(const Font_Params & font_to_load)
 Fnt::~Fnt()
 {
   UnloadTexture(m_font_img);
+}
+
+string Fnt::get_name() const
+{
+  return m_name;
 }
 
 long Fnt::get_height() const
@@ -136,7 +142,7 @@ void Textbox::add_selection_menu(Selection<string>* s)
 
 void Textbox::create_fitted(const long & size_x, const long & size_y, World* world)
 {
-  create_fixed(size_x, size_y, world->get_word_width(0, m_text) + TEXTBOX_PADDING_LONG * 2, world->get_font_height(0) + TEXTBOX_PADDING_SHORT * 2, world);
+  create_fixed(size_x, size_y, world->get_word_width("Text", m_text) + TEXTBOX_PADDING_LONG * 2, world->get_font_height("Text") + TEXTBOX_PADDING_SHORT * 2, world);
 }
 
 void Textbox::create_fitted_choices(const long & size_x, const long & size_y, const vector<string> & choices, World* world)
@@ -144,7 +150,7 @@ void Textbox::create_fitted_choices(const long & size_x, const long & size_y, co
   Selection<string>* s{new Selection{to_pointers(choices), static_cast<long>(choices.size()), 1, 1, 0}};
   ++mem;
   add_selection_menu(s);
-  create_fixed(size_x, size_y, world->get_word_width(0, m_text) + TEXTBOX_PADDING_LONG * 2, world->get_font_height(0) * 2 + TEXTBOX_PADDING_SHORT * 2, world);
+  create_fixed(size_x, size_y, world->get_word_width("Text", m_text) + TEXTBOX_PADDING_LONG * 2, world->get_font_height("Text") * 2 + TEXTBOX_PADDING_SHORT * 2, world);
 }
 
 void Textbox::create_fixed(const long & size_x, const long & size_y, const long & size_width, const long & size_height, World* world)
@@ -169,7 +175,7 @@ void Textbox::create_fixed(const long & size_x, const long & size_y, const long 
   m_start_h = 9;
   m_x_speed = (m_size_w / 2 - 4.5) / PANEL_SPEED;
   m_y_speed = (m_size_h / 2 - 4.5) / PANEL_SPEED;
-  m_continue_arrow_animation = Animation(CONTINUE_ARROW_ANIMATION_FRAMES, CONTINUE_ARROW_ANIMATION_START_FRAME, false, CONTINUE_ARROW_INTERVAL);
+  m_continue_arrow_animation = Blinking_Animation(false, false, CONTINUE_ARROW_INTERVAL);
 
   if(m_title_text != "")
   {
@@ -196,7 +202,7 @@ void Textbox::create_fixed(const long & size_x, const long & size_y, const long 
     m_selection->set_spacing_x(m_text_area_w);
   }
   
-  break_text(m_text, world, 0);
+  break_text(m_text, world, "Text");
   
   if(m_text_chunks.size() >= 2)
   {
@@ -294,10 +300,10 @@ void Textbox::render(World* world) const
     m_panel->render(world);
     if(m_expanded == true && m_shrink == false)
     {
-      render_textbox(m_text_chunks[0], world, 0);
+      render_textbox(m_text_chunks[0], world, "Text");
       if(m_title_text != "")
       {
-        world->render_text(2, m_title_text, m_title_x, m_title_y);
+        world->render_text("Character Title", m_title_text, m_title_x, m_title_y);
       }
       if(m_portrait_img.id != 0)
       {
@@ -307,7 +313,7 @@ void Textbox::render(World* world) const
       {
         m_selection->render(world);
       }
-      if(m_continue_arrow_animation.get_frame() == 1)
+      if(m_continue_arrow_animation.is_visible() == true)
       {
         world->render_continue_arrow(m_size_x + m_size_w / 2.0, m_size_y + m_size_h);
       }
@@ -315,12 +321,12 @@ void Textbox::render(World* world) const
   }
 }
 
-long Textbox::get_selected_item()
+long Textbox::get_selected_item() const
 {
   return m_selection->get_highlighted_item();
 }
 
-bool Textbox::dead()
+bool Textbox::dead() const
 {
   return m_dead;
 }
@@ -343,17 +349,18 @@ void Textbox::on_click()
   else if(m_text_chunks.size() == 1)
   {
     m_continue_arrow_animation.set_loop(false);
+    m_continue_arrow_animation.set_visibility(false);
   }
 }
 
-void Textbox::break_text(string text, World* world, const long & font_no)
+void Textbox::break_text(string text, World* world, const string & font_name)
 {
   long current_x_pos{m_text_area_x};
   string current_word{""};
   long word_width{0};
   char next_char{'a'};
   string build_text;
-  long lines_left{static_cast<long>(floor(m_text_area_h / world->get_font_height(font_no)))};
+  long lines_left{static_cast<long>(floor(m_text_area_h / world->get_font_height(font_name)))};
 
   while(text.empty() == false)
   {
@@ -363,7 +370,7 @@ void Textbox::break_text(string text, World* world, const long & font_no)
       next_char = text[0];
       if(next_char == ' ')
       {
-        word_width += world->get_char_width(font_no, text[0]);
+        word_width += world->get_char_width(font_name, text[0]);
         current_word.push_back(' ');
         text.erase(text.begin());
       }
@@ -371,7 +378,7 @@ void Textbox::break_text(string text, World* world, const long & font_no)
       next_char = text[0];
       while(next_char != ' ' && text.empty() == false)
       {
-        word_width += world->get_char_width(font_no, text[0]);
+        word_width += world->get_char_width(font_name, text[0]);
         current_word.push_back(text[0]);
         text.erase(text.begin());
         if(text.empty() == false)
@@ -410,25 +417,25 @@ void Textbox::break_text(string text, World* world, const long & font_no)
 
       while(current_word.empty() == false)
       {
-        current_x_pos += world->get_char_width(font_no, current_word[0]);
+        current_x_pos += world->get_char_width(font_name, current_word[0]);
         build_text.push_back(current_word[0]);
         current_word.erase(current_word.begin());
       }
     }
-    lines_left = static_cast<long>(floor(m_text_area_h / world->get_font_height(font_no)));
+    lines_left = static_cast<long>(floor(m_text_area_h / world->get_font_height(font_name)));
     m_text_chunks.push_back(build_text);
     build_text = "";
   }
 }
 
-void Textbox::render_textbox(string text, World* world, const long & font_no) const
+void Textbox::render_textbox(string text, World* world, const string & font_name) const
 {
   long current_x_pos{m_text_area_x};
   long current_y_pos{m_text_area_y};
   string current_word{""};
   long word_width{0};
   char next_char{'a'};
-  long lines_left{static_cast<long>(floor(m_text_area_h / world->get_font_height(font_no)))};
+  long lines_left{static_cast<long>(floor(m_text_area_h / world->get_font_height(font_name)))};
 
   // Repeat until the text box text is empty.
   while(text.empty() == false && lines_left != 0)
@@ -437,7 +444,7 @@ void Textbox::render_textbox(string text, World* world, const long & font_no) co
     next_char = text[0];
     if(next_char == ' ')
     {
-      word_width += world->get_char_width(font_no, text[0]);
+      word_width += world->get_char_width(font_name, text[0]);
       current_word.push_back(' ');
       text.erase(text.begin());
     }
@@ -445,7 +452,7 @@ void Textbox::render_textbox(string text, World* world, const long & font_no) co
     next_char = text[0];
     while(next_char != ' ' && text.empty() == false)
     {
-      word_width += world->get_char_width(font_no, text[0]);
+      word_width += world->get_char_width(font_name, text[0]);
       current_word.push_back(text[0]);
       text.erase(text.begin());
       if(text.empty() == false)
@@ -458,7 +465,7 @@ void Textbox::render_textbox(string text, World* world, const long & font_no) co
     // change the rendering position of the letters and erase the leading space from the current word.
     if(current_x_pos - m_text_area_x + word_width > m_text_area_w)
     {
-      current_y_pos += world->get_font_height(font_no);
+      current_y_pos += world->get_font_height(font_name);
       current_x_pos = m_text_area_x;
       --lines_left;
       if(current_word.empty() == false)
@@ -475,8 +482,8 @@ void Textbox::render_textbox(string text, World* world, const long & font_no) co
     // Draw the letters in the current word to the screen letter by letter.
     while(current_word.empty() == false)
     {
-      world->render_letter(font_no, current_x_pos, current_y_pos, current_word[0]);
-      current_x_pos += world->get_char_width(font_no, current_word[0]);
+      world->render_letter(font_name, current_x_pos, current_y_pos, current_word[0]);
+      current_x_pos += world->get_char_width(font_name, current_word[0]);
       current_word.erase(current_word.begin());
     }
   }
@@ -547,6 +554,11 @@ void Player_Summary::toggle_switch_rect()
   }
 }
 
+string Player_Summary::get_name() const
+{
+  return m_player_name;
+}
+
 bool Player_Summary::get_switch() const
 {
   return m_switch_rect;
@@ -608,17 +620,17 @@ void Player_Summary::render(World* world) const
     DrawRectangle(m_x + TEXTBOX_PADDING_LONG, m_y + TEXTBOX_PADDING_SHORT, PLAYER_SUMMARY_SECTION_WIDTH * 4, TEXT_FONT_HEIGHT * 4, Color{192, 255, 192, 255});
   }
   world->render_party_member_portrait(m_player_name, 0, m_x + TEXTBOX_PADDING_LONG + m_portrait_tween_current, m_y + TEXTBOX_PADDING_SHORT);
-  world->render_text(0, world->get_party_member_row(m_player_name) == true ? "Front" : "Back", m_x + TEXTBOX_PADDING_LONG, m_y + TEXTBOX_PADDING_SHORT);
-  world->render_text(0, "Row", m_x + TEXTBOX_PADDING_LONG, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT);
-  world->render_text(0, m_player_name + " Lv. " + to_string(world->get_party_member_unmodified_stat(m_player_name, "Level")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
-  world->render_text(0, world->get_party_member_species(m_player_name), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
-  world->render_text(0, world->get_party_member_class(m_player_name), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
-  world->render_text(0, "HP    " + to_string(world->get_party_member_unmodified_stat(m_player_name, "HP")) + "/" + to_string(world->get_party_member_stat(m_player_name, "Max HP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  world->render_text(0, "MP    " + to_string(world->get_party_member_unmodified_stat(m_player_name, "MP")) + "/" + to_string(world->get_party_member_stat(m_player_name, "Max MP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  world->render_text(0, "Soul Break    " + to_string(world->get_party_member_soul_break_level(m_player_name)), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  world->render_text(0, "Scroll", m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
-  world->render_text(0, "EXP " + to_string(world->get_party_member_unmodified_stat(m_player_name, "EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT);
-  world->render_text(0, "Next Lv. " + to_string(world->get_party_member_unmodified_stat(m_player_name, "Next Level EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text("Text", world->get_party_member_row(m_player_name) == true ? "Front" : "Back", m_x + TEXTBOX_PADDING_LONG, m_y + TEXTBOX_PADDING_SHORT);
+  world->render_text("Text", "Row", m_x + TEXTBOX_PADDING_LONG, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT);
+  world->render_text("Text", m_player_name + " Lv. " + to_string(world->get_party_member_unmodified_stat(m_player_name, "Level")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
+  world->render_text("Text", world->get_party_member_species(m_player_name), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
+  world->render_text("Text", world->get_party_member_class(m_player_name), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT);
+  world->render_text("Text", "HP    " + to_string(world->get_party_member_unmodified_stat(m_player_name, "HP")) + "/" + to_string(world->get_party_member_stat(m_player_name, "Max HP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text("Text", "MP    " + to_string(world->get_party_member_unmodified_stat(m_player_name, "MP")) + "/" + to_string(world->get_party_member_stat(m_player_name, "Max MP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text("Text", "Soul Break    " + to_string(world->get_party_member_soul_break_level(m_player_name)), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text("Text", "Scroll", m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 2 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
+  world->render_text("Text", "EXP " + to_string(world->get_party_member_unmodified_stat(m_player_name, "EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT);
+  world->render_text("Text", "Next Lv. " + to_string(world->get_party_member_unmodified_stat(m_player_name, "Next Level EXP")), m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_TEXT_OFFSET);
   m_hp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 2 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   m_mp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);
   m_exp->render(world, m_x + TEXTBOX_PADDING_LONG + PLAYER_SUMMARY_SECTION_WIDTH * 3 + PLAYER_SUMMARY_SECTION_PADDING, m_y + TEXTBOX_PADDING_SHORT + TEXT_FONT_HEIGHT * 3 + PLAYER_SUMMARY_PROGRESS_BAR_BAR_OFFSET);

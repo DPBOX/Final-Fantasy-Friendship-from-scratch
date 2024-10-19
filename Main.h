@@ -33,9 +33,9 @@ extern long mem;
 
 #include "Consts/Game_Consts.h"
 #include "Consts/Media.h"
+#include "Functions.h"
 #include "Script_Structs.h"
 #include "Consts/Storyboard_Consts.h"
 #include "Consts/Map_Consts.h"
-#include "Functions.h"
 
 #endif

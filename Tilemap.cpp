@@ -28,7 +28,7 @@ Map_Handler::~Map_Handler()
   }
 }
 
-void Map_Handler::add_map(const Map_Data & map_data, Map_Handler* map_handler)
+void Map_Handler::add_map(World* world, const Map_Data & map_data, Map_Handler* map_handler)
 {
   if(m_map != nullptr)
   {
@@ -51,7 +51,7 @@ void Map_Handler::add_map(const Map_Data & map_data, Map_Handler* map_handler)
   m_entity_list.clear();
   m_trigger_list.clear();
   m_script_list = map_data.m_scripts;
-  m_map = new Tilemap(map_data);
+  m_map = new Tilemap(world, map_data);
   ++mem;
 
   Entity* hero{nullptr};
@@ -535,7 +535,7 @@ void Map_Handler::turn_entity(const long & entity_index, const Direction & direc
   }
 }
 
-Map_Handler::Tilemap::Tilemap(const Map_Data & map_data)
+Map_Handler::Tilemap::Tilemap(World* world, const Map_Data & map_data)
 {
   m_map_width = map_data.m_map_width;
   m_map_height = map_data.m_map_height;
@@ -543,9 +543,11 @@ Map_Handler::Tilemap::Tilemap(const Map_Data & map_data)
   m_id = map_data.m_id;
   m_tilemap = map_data.m_tile_map;
   m_collision_map = map_data.m_collision_map;
+  m_music = map_data.m_music;
   Image image{LoadImageFromMemory(".png", map_data.m_img_data, map_data.m_img_size)};
   m_tiles = LoadTextureFromImage(image);
   UnloadImage(image);
+  world->play_global_music(m_music);
 }
 
 Map_Handler::Tilemap::~Tilemap()

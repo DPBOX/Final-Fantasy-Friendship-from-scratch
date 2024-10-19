@@ -40,7 +40,7 @@ class Title_State : public Game_State
 class Explore_State : public Game_State
 {
   public:
-    explicit Explore_State(const Map_Data & map_data, const Scr & start_script = DUMMY_SCRIPT);
+    explicit Explore_State(World* world, const Map_Data & map_data, const Scr & start_script = DUMMY_SCRIPT);
     Explore_State(const Explore_State & obj) = delete;
     Explore_State & operator =(const Explore_State & obj) = delete;
     virtual ~Explore_State();

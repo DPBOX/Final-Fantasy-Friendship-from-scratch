@@ -11,7 +11,7 @@ class Map_Handler
     Map_Handler & operator =(const Map_Handler & obj) = delete;
     ~Map_Handler();
 
-    void add_map(const Map_Data & map_data, Map_Handler* map_handler);
+    void add_map(World* world, const Map_Data & map_data, Map_Handler* map_handler);
     void add_script(const Scr & events);
     void update_input(Map_Handler* map_handler, World* world);
     void render(Map_Handler* map_handler, World* world) const;
@@ -43,7 +43,7 @@ class Map_Handler
     {
       private:
         friend class Map_Handler;
-        explicit Tilemap(const Map_Data & map_data);
+        explicit Tilemap(World* world, const Map_Data & map_data);
         Tilemap(const Tilemap & obj) = delete;
         Tilemap & operator =(const Tilemap & obj) = delete;
         ~Tilemap();
@@ -70,6 +70,7 @@ class Map_Handler
         string m_cam_char_to_follow{"Hero"};
         long m_manual_cam_x{0};
         long m_manual_cam_y{0};
+        string m_music{"City"};
     };
 
     class Script
@@ -111,7 +112,7 @@ class Map_Handler
         };
         struct Caption_Data
         {
-          explicit Caption_Data(const long & font, const string & id, const string & text, const long & y_pos, const long & alpha = 0);
+          explicit Caption_Data(const string & font, const string & id, const string & text, const long & y_pos, const long & alpha = 0);
           Caption_Data(const Caption_Data & obj) = delete;
           Caption_Data & operator =(const Caption_Data & obj) = delete;
           ~Caption_Data(){}
@@ -119,7 +120,7 @@ class Map_Handler
           string m_text{"NULL"};
           long m_y_pos{0};
           long m_alpha{0};
-          long m_font{0};
+          string m_font{0};
         };
 
         Scr m_events{};
@@ -320,6 +321,7 @@ class Map_Handler
     friend class Character;
     friend class Hero;
     friend class NPC;
+    friend class Treasure_Chest;
     friend class Standing_NPC;
     friend class Strolling_NPC;
     friend class Path_NPC;

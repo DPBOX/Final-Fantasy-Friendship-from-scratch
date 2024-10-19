@@ -86,15 +86,15 @@ class State_Machine::Front_Menu : private State_Machine::Machine_State
     Selection<string>* m_selection{nullptr};
     Selection<Player_Summary>* m_party_menu{nullptr};
     string m_top_bar_text{"Current Map Name"};
-    vector<Player_Summary*> m_party_info{};
-    long m_option_selected{-1};
+    List<Player_Summary> m_party_info{};
+    string m_option_selected{"NULL"};
 };
 
 class State_Machine::Item_Menu : private State_Machine::Machine_State
 {
   private:
     friend class State_Machine;
-    explicit Item_Menu();
+    explicit Item_Menu(World* world);
     Item_Menu(const Item_Menu & obj) = delete;
     Item_Menu & operator =(const Item_Menu & obj) = delete;
     virtual ~Item_Menu();
@@ -118,7 +118,7 @@ class State_Machine::Status_Menu : private State_Machine::Machine_State
 {
   private:
     friend class State_Machine;
-    explicit Status_Menu(const string & character_name);
+    explicit Status_Menu(World* world, const string & character_name);
     Status_Menu(const Status_Menu & obj) = delete;
     Status_Menu & operator =(const Status_Menu & obj) = delete;
     virtual ~Status_Menu();
@@ -132,16 +132,18 @@ class State_Machine::Status_Menu : private State_Machine::Machine_State
     Panel* m_panel{nullptr};
     Panel* m_equipment_panel{nullptr};
     Selection<string>* m_selection{nullptr};
-    Selection<string>* m_weapons{nullptr};
-    Selection<string>* m_shields{nullptr};
-    Selection<string>* m_helms{nullptr};
-    Selection<string>* m_armor{nullptr};
-    Selection<string>* m_accessories{nullptr};
+    Selection<Equipment>* m_weapons{nullptr};
+    Selection<Equipment>* m_shields{nullptr};
+    Selection<Equipment>* m_helms{nullptr};
+    Selection<Equipment>* m_armor{nullptr};
+    Selection<Equipment>* m_accessories{nullptr};
     Progress_Bar* m_hp{};
     Progress_Bar* m_mp{};
     Progress_Bar* m_exp{};
     Progress_Bar* m_soul_break{};
     Progress_Bar* m_scroll{};
+    long m_slot{0};
+    vector<long> m_equipment_stat_differences{};
 };
 
 #endif

@@ -81,13 +81,16 @@ class Stat_Modifier
     long get_replace_modifier() const;
     long get_add_modifier() const;
     double get_multiply_modifier() const;
+    void set_slot(const long & slot);
+    long get_slot() const;
   private:
     string m_id{"NULL"};
     string m_type{"NULL"};
     string m_stat{"NULL"};
     long m_replace_modifier{0};
     long m_add_modifier{0};
-    double m_multiply_modifier{0};
+    double m_multiply_modifier{1};
+    long m_slot{-1};
 };
 
 const Character_Base_Stats TEMPEST_SHADOW_BASE_STATS{58, 25, 42, 29, 5, 2, 5, TEMPEST_SPIRIT_GROWTH, TEMPEST_STAMINA_GROWTH, TEMPEST_STRENGTH_GROWTH, TEMPEST_INTELLECT_GROWTH};
@@ -186,6 +189,7 @@ struct Player_Info
   const string m_name{"NULL"};
   const string m_species{"NULL"};
   const string m_class{"NULL"};
+  const char m_char_code{'0'};
   const bool m_starting_row{true};
   const long m_icon{0};
   const Character_Base_Stats m_stats{};
@@ -212,6 +216,9 @@ class Item
     virtual void increment_count(){}
     virtual void decrement_count(){}
     virtual long get_count() const;
+    virtual vector<Stat_Modifier> get_stats() const;
+    virtual vector<string> get_usable_by() const;
+    virtual bool can_equip(const string & party_member_name) const;
 //    virtual void use(){}
   protected:
     string m_name{"NULL"};
@@ -246,115 +253,25 @@ class Key_Item : public Item
 class Equipment : public Item
 {
   public:
-    explicit Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by = vector<string>{}, const string & equipped_by = "NULL");
+    explicit Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by = vector<string>{}, const long & slot = -1, const string & equipped_by = "NULL", const long & count = 1);
     virtual ~Equipment(){}
     virtual string get_description() const;
+    virtual vector<Stat_Modifier> get_stats() const;
+    virtual vector<string> get_usable_by() const;
     virtual void increment_count();
     virtual void decrement_count();
     virtual long get_count() const;
     virtual bool can_equip(const string & party_member_name) const;
-    virtual void set_equip_by(const string & name);
-    virtual string equipped_by() const;
+    virtual string get_equipped_by() const;
+    virtual long get_slot() const;
+
   protected:
     long m_count{1};
     vector<string> m_usable_by{};
     vector<Stat_Modifier> m_stats{};
+    long m_slot{-1};
     string m_equipped_by{"NULL"};
 };
-/*
-struct Item
-{
-  struct Stats
-  {
-    explicit Stats(const long & strength, const long & speed, const long & intelligence, const long & attack, const long & defense, const long & magic, const long & resist) : m_strength(strength), m_speed(speed), m_intelligence(intelligence), m_attack(attack), m_defense(defense), m_magic(magic), m_resist(resist){}
-    long m_strength{0};
-    long m_speed{0};
-    long m_intelligence{0};
-    long m_attack{0};
-    long m_defense{0};
-    long m_magic{0};
-    long m_resist{0};
-    ~Stats(){}
-  };
-  explicit Item(const string & name = "NULL", const string & type = "NULL", const string & description = "", const long & icon = 0, const string & special = "NULL", const long & strength = 0, const long & speed = 0, const long & intelligence = 0, const long & attack = 0, const long & defense = 0, const long & magic = 0, const long & resist = 0) : m_name(name), m_type(type), m_description(description), m_icon(icon), m_special(special), m_stats(strength, speed, intelligence, attack, defense, magic, resist){}
-  string get_description() const
-  {
-    string description{m_description};
-    if(m_stats.m_strength != 0)
-    {
-      (m_stats.m_strength > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_strength) + " Strength";
-    }
-    if(m_stats.m_speed != 0)
-    {
-      (m_stats.m_speed > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_speed) + " Speed";
-    }
-    if(m_stats.m_intelligence != 0)
-    {
-      (m_stats.m_intelligence > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_intelligence) + " Intelligence";
-    }
-    if(m_stats.m_attack != 0)
-    {
-      (m_stats.m_attack > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_attack) + " Attack";
-    }
-    if(m_stats.m_defense != 0)
-    {
-      (m_stats.m_defense > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_defense) + " Defense";
-    }
-    if(m_stats.m_magic != 0)
-    {
-      (m_stats.m_magic > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_magic) + " Magic";
-    }
-    if(m_stats.m_resist != 0)
-    {
-      (m_stats.m_resist > 0) ? (description += " +") : (description += " ");
-      description += to_string(m_stats.m_resist) + " Resist";
-    }
-    return description;
-  }
-  string m_name{"NULL"};
-  string m_type{"NULL"};
-  string m_description{"NULL"};
-  long m_icon{0};
-  string m_special{"NULL"};
-  Stats m_stats{0, 0, 0, 0, 0, 0, 0};
-  ~Item(){}
-};
-
-class Item_Slot
-{
-  public:
-    explicit Item_Slot(const Item & item) : m_item(item){}
-    void inc_count()
-    {
-      ++m_count;
-    }
-    void dec_count()
-    {
-      if(m_count > 0)
-      {
-        --m_count;
-      }
-    }
-    Item get_item() const
-    {
-      return m_item;
-    }
-    long get_count() const
-    {
-      return m_count;
-    }
-    ~Item_Slot(){}
-  private:
-    Item m_item{};
-    long m_count{1};
-};
-*/
 
 class Party_Member
 {
@@ -378,20 +295,29 @@ class Party_Member
     bool get_row() const;
     long get_soul_break_level() const;
     void render_portrait(const bool & size, const long & x, const long & y) const;
+    void render_letter(const long & x, const long & y, const char & id) const;
     bool set_front_row();
     bool set_back_row();
     void swap_party_members(const string & name1, const string & name2);
     void give_member_exp(const long & exp);
     void level_up();
-    void equip(World* world, const string & item_name);
-    Equipment* get_equipped_weapon() const;
-    Equipment* get_equipped_shield() const;
-    Equipment* get_equipped_helm() const;
-    Equipment* get_equipped_armor() const;
-    Equipment* get_equipped_accessory_one() const;
-    Equipment* get_equipped_accessory_two() const;
+    void equip(World* world, const string & item_name, const long & slot);
+    void unequip(World* world, const string & item_type, const long & slot);
+    string get_equipped_weapon() const;
+    string get_equipped_shield() const;
+    string get_equipped_helm() const;
+    string get_equipped_armor() const;
+    string get_equipped_accessory_one() const;
+    string get_equipped_accessory_two() const;
     long get_icon() const;
-    Fnt* get_font() const;
+    void restore_equipped_weapon(Equipment* equipment);
+    void restore_equipped_shield(Equipment* equipment);
+    void restore_equipped_helm(Equipment* equipment);
+    void restore_equipped_armor(Equipment* equipment);
+    void restore_equipped_accessory_one(Equipment* equipment);
+    void restore_equipped_accessory_two(Equipment* equipment);
+    Player_Stats get_stats() const;
+    void set_stats(const Player_Stats & stats);
 
   private:
     string m_name{"NULL"};
@@ -418,7 +344,6 @@ class Party
     explicit Party(){}
     Party(const Party & obj) = delete;
     Party & operator =(const Party & obj) = delete;
-    ~Party();
     
     void update_stats();
     void add_party_member(const Player_Info & player);
@@ -427,6 +352,7 @@ class Party
     string get_member_name(const long & index) const;
     string get_member_species(const string & name) const;
     string get_member_class(const string & name) const;
+    long get_member_icon(const string & name) const;
     string get_next_member_name(const string & name) const;
     string get_previous_member_name(const string & name) const;
     long get_member_portrait_width(const string & name) const;
@@ -438,21 +364,31 @@ class Party
     bool get_member_row(const string & name) const;
     long get_member_soul_break_level(const string & name) const;
     void render_member_portrait(const string & name, const bool & size, const long & x, const long & y) const;
+    void render_letter_in_member_font(const string & name, const long & x, const long & y, const char & id) const;
     long get_size() const;
     bool set_member_front_row(const string & name);
     bool set_member_back_row(const string & name);
     void swap_party_members(const string & name1, const string & name2);
-    void equip(World* world, const string & party_member_name, const string & item_name);
-    vector<Equipment*> get_equipped_equipment() const;
-    vector<Equipment*> get_equipped_weapons() const;
-    vector<Equipment*> get_equipped_shields() const;
-    vector<Equipment*> get_equipped_helms() const;
-    vector<Equipment*> get_equipped_armor() const;
-    vector<Equipment*> get_equipped_accessories() const;
-    Party_Member* get_member(const string & name) const;
+    void equip(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot);
+    string get_member_equipped_equipment(const string & party_member_name, const string & type) const;
+    vector<Equipment*> get_equipped_equipment_including_nulls(World* world) const;
+    vector<Equipment*> get_equipped_weapons(World* world) const;
+    vector<Equipment*> get_equipped_shields(World* world) const;
+    vector<Equipment*> get_equipped_helms(World* world) const;
+    vector<Equipment*> get_equipped_armor(World* world) const;
+    vector<Equipment*> get_equipped_accessories(World* world) const;
+    bool has_equipped_weapons() const;
+    bool has_equipped_shields() const;
+    bool has_equipped_helms() const;
+    bool has_equipped_armor() const;
+    bool has_equipped_accessories() const;
+    void restore_equipment(vector<Equipment*> equipment);
+    void back_up_party_stats();
+    void restore_party_stats();
 
   private:
-    vector<Party_Member*> m_members{};
+    List<Party_Member> m_members{};
+    vector<Player_Stats> m_stats_back_up{};
 };
 
 class World
@@ -464,37 +400,37 @@ class World
     ~World();
 
     void update();
-    void render_item(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_key_item(const long & x, const long & y, const long & font_no, const long & item_index) const;
-    void render_weapon(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_shield(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_helm(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_armor(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_accessory(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const;
-    void render_stat(const long & x, const long & y, const long & font_no, const long & item_index, const long & width, const string & name) const;
+    void render_item(const long & x, const long & y, const string & font_name, const string & item_name, const long & width) const;
+    void render_key_item(const long & x, const long & y, const string & font_name, const string & item_name) const;
+    void render_equipment(const long & x, const long & y, const string & font_name, const string & item_name, const long & width, const bool & show_quantity, const string & equipped_by = "NULL") const;
+    void render_stat(const long & x, const long & y, const string & font_name, const string & stat_name, const long & width, const string & party_member_name, const vector<long> & equipment_stat_differences) const;
     void render_cursor() const;
-    void render_text_center(const long & font_no, const string & text, const long & y_pos, const long & alpha = 255) const;
-    void render_text(const long & font_no, const string & text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
-    void render_letter(const long & font_no, const long & x, const long & y, const char & id, const long & alpha = 255) const;
+    void render_text_center(const string & font_name, const string & text, const long & y_pos, const long & alpha = 255) const;
+    void render_text(const string & font_name, const string & text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
+    void render_letter(const string & font_name, const long & x, const long & y, const char & id, const long & alpha = 255) const;
     void render_panel(const double & x, const double & y, const double & w, const double & h) const;
-    void render_continue_arrow(const long & x, const long & y) const;
+    void render_continue_arrow(const long & x, const long & y, const bool & flip_y = false) const;
     void render_progress_bar(const string & progress_bar_name, const long & x, const long & y) const;
 
     vector<string> get_items() const;
     vector<string> get_key_items() const;
-    vector<string> get_weapons() const;
-    vector<string> get_shields() const;
-    vector<string> get_helms() const;
-    vector<string> get_armor() const;
-    vector<string> get_accessories() const;
+    vector<Equipment*> get_weapons(World* world) const;
+    vector<Equipment*> get_shields(World* world) const;
+    vector<Equipment*> get_helms(World* world) const;
+    vector<Equipment*> get_armor(World* world) const;
+    vector<Equipment*> get_accessories(World* world) const;
+
+    string get_item_type(const string & name) const;
     string get_item_description(const string & item_name) const;
 
-    bool can_use_weapon(const string & party_member_name, const long & item_index) const;
-    bool can_use_shield(const string & party_member_name, const long & item_index) const;
-    bool can_use_helm(const string & party_member_name, const long & item_index) const;
-    bool can_use_armor(const string & party_member_name, const long & item_index) const;
-    bool can_use_accessory(const string & party_member_name, const long & item_index) const;
-    void equip(World* world, const string & party_member_name, const string & item_name);
+    vector<Stat_Modifier> get_equipment_stat_modifiers(const string & item_name, const long & slot) const;
+    long get_equipment_add_modifier(const string & item_name, const string & stat_name) const;
+    long get_equipment_replace_modifier(const string & item_name, const string & stat_name) const;
+    double get_equipment_multiply_modifier(const string & item_name, const string & stat_name) const;
+    vector<string> get_equipment_usable_by(const string & item_name) const;
+
+    bool can_use_equipment(const string & party_member_name, const string & item_name, const string & type = "NULL") const;
+    void equip(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot);
 
     bool has_items() const;
     bool has_item(const string & item) const;
@@ -509,7 +445,7 @@ class World
     bool has_helms() const;
     bool has_armor() const;
     bool has_accessories() const;
-    bool has_equipment(const string & item) const;
+//    bool has_equipment(const string & item) const;
     void add_equipment(const string & item);
     void remove_equipment(const string & item);
 
@@ -518,11 +454,14 @@ class World
     void pause_time();
     void unpause_time();
     void set_cursor_destination(const long & end_x, const long & end_y);
-    long get_font_height(const long & font_no) const;
-    long get_word_width(const long & font_no, const string & text) const;
-    long get_char_width(const long & font_no, const char & text) const;
+    long get_font_height(const string & font_name) const;
+    long get_word_width(const string & font_name, const string & text) const;
+    long get_char_width(const string & font_name, const char & text) const;
     void play_global_sound(const string & name) const;
-    
+    void play_global_music(const string & name);
+    void pause_play_global_music() const;
+    void stop_global_music();
+
     string get_party_member_name(const long & index) const;
     string get_party_member_species(const string & index) const;
     string get_party_member_class(const string & index) const;
@@ -542,24 +481,27 @@ class World
     bool set_party_member_back_row(const string & index);
     void swap_party_members(const string & name1, const string & name2);
     void add_party_member(const Player_Info & player);
-    string get_equipment_type(const string & name) const;
-    Equipment* get_equipment(const string & name) const;
+    string get_party_member_equipped_equipment(const string & party_member_name, const string & type, const long & slot = -1) const;
+    vector<long> build_equipment_stat_differences(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot);
     
   private:
     LTimer m_time{};
     long m_money{0};
-    vector<Consumable_Item*> m_items{};
-    vector<Key_Item*> m_key_items{};
-    vector<Equipment*> m_equipment{};
+    List<Consumable_Item> m_items{};
+    List<Key_Item> m_key_items{};
+    List<Equipment> m_equipment{};
     Texture2D m_item_icons_tex{};
     Texture2D m_panel_texture{};
     Texture2D m_continue_arrow_texture{};
     Party m_party{};
-    vector<Fnt*> m_fonts{};
+    List<Fnt> m_fonts{};
     Cursor* m_cursor{nullptr};
+    vector<Music> m_global_music{};
+    vector<string> m_global_music_names{};
+    string m_music_playing{"NULL"};
     vector<Sound> m_global_sounds{};
     vector<string> m_global_sound_names{};
-    vector<Item*> m_item_database{};
+    List<Item> m_item_database{};
     vector<string> m_progress_bar_image_names{};
     vector<Texture2D> m_progress_bar_textures{};
 };

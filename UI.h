@@ -2,6 +2,7 @@
 #define UI_H
 
 class World;
+class Equipment;
 
 struct Font_Params
 {
@@ -18,7 +19,8 @@ struct Font_Params
 const Font_Params TEXT_FONT{};
 const Font_Params HEADING_FONT{"Heading", HEADING_FONT_IMAGE, FONT_HEADING_CELL_WIDTH, FONT_HEADING_CHAR_WIDTHS};
 const Font_Params CHARACTER_TITLE_FONT{"Character Title", TEXT_FONT_YELLOW_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
-const Font_Params RED_FONT{"Red Font", TEXT_FONT_RED_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params RED_FONT{"Red", TEXT_FONT_RED_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params GREEN_FONT{"Green", TEXT_FONT_GREEN_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
 const Font_Params TEMPEST_FONT{"Character Title", TEXT_FONT_TEMPEST_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
 const Font_Params NIGHTWISH_FONT{"Character Title", TEXT_FONT_NIGHTWISH_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
 const Font_Params GALLUS_FONT{"Character Title", TEXT_FONT_GALLUS_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
@@ -31,6 +33,7 @@ class Fnt
     Fnt & operator =(const Fnt & obj) = delete;
     ~Fnt();
 
+    string get_name() const;
     long get_height() const;
     long get_cell_width() const;
     long get_char_width(const long & index) const;
@@ -39,6 +42,7 @@ class Fnt
     void render_text_center(string text, const long & y_pos, const long & alpha = 255) const;
     void render_letter(const long & x, const long & y, const char & id, const long & alpha = 255) const;
   private:
+    string m_name{"NULL"};
     long m_cell_width{0};
     array<long, NUM_FONT_CELLS> m_char_widths{};
     Texture2D m_font_img{};
@@ -90,6 +94,7 @@ class Player_Summary
     
     void render(World* world) const;
     
+    string get_name() const;
     void set_portrait_tween(const bool & start);
     void set_y_tween(const long & index1, const long & index2, const bool & index);
     void update_tweens(World* world);
@@ -122,28 +127,29 @@ class Selection
     Selection & operator =(const Selection & obj) = delete;
     ~Selection(){}
 
+    void rebuild_choices(const vector<T*> & data);
     void update_input(World* world);
-    void render(World* world, const string & party_member_name = "NULL") const;
+    void render(World* world, const string & party_member_name = "NULL", const vector<long> & equipment_stat_differences = vector<long>{}) const;
     
     void set_position(const long & x, const long & y);
     void set_spacing_x(const long & text_area_width);
     long get_height() const;
-    string get_highlighted_item_string() const;
     long get_highlighted_item() const;
+    const T* get_highlighted_item_obj() const;
     void show_cursor();
     void hide_cursor();
     bool cursor_shown() const;
     void show_menu();
     void hide_menu();
     bool menu_shown() const;
-    string c_get_options() const;
+    string c_get_options(World* world) const;
 
   private:
-    void render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
+    void render_item(World* world, const string & font, const long & x, const long & y, const string & item_name) const;
 
     long m_x{0};
     long m_y{0};
-    vector<T*> m_choices{};
+    List<T> m_choices{};
     long m_columns{1};
     long m_max_rows{1};
     long m_display_rows{1};
@@ -151,33 +157,25 @@ class Selection
     long m_focus_y{0};
     long m_spacing_x{0};
     long m_spacing_y{0};
-    long m_show_cursor{true};
-    long m_show_menu{true};
+    bool m_show_cursor{true};
+    bool m_show_menu{true};
     long m_display_start{0};
     long m_highlighted_item{0};
     string m_render_mode{"Normal"};
+    Blinking_Animation m_continue_arrow_animation{false, false, CONTINUE_ARROW_INTERVAL};
 };
-
-template<>
-Selection<string>::~Selection();
 
 template <>
 void Selection<string>::update_input(World* world);
 
 template <>
-void Selection<Player_Summary>::update_input(World* world);
+void Selection<string>::render(World* world, const string & party_member_name, const vector<long> & equipment_stat_differences) const;
 
 template <>
-void Selection<string>::render(World* world, const string & party_member_name) const;
+void Selection<Equipment>::render(World* world, const string & party_member_name, const vector<long> & equipment_stat_differences) const;
 
 template <>
-string Selection<string>::get_highlighted_item_string() const;
-
-template <>
-string Selection<string>::c_get_options() const;
-
-template <>
-void Selection<string>::render_item(World* world, const long & font, const long & x, const long & y, const long & item_index) const;
+void Selection<string>::render_item(World* world, const string & font, const long & x, const long & y, const string & item_index) const;
 
 class Textbox
 {
@@ -197,13 +195,13 @@ class Textbox
     void update_input(World* world);
     void render(World* world) const;
     
-    long get_selected_item();
-    bool dead();
+    long get_selected_item() const;
+    bool dead() const;
 
   private:
     void on_click();
-    void break_text(string text, World* world, const long & font_no);
-    void render_textbox(string text, World* world, const long & font_no) const;
+    void break_text(string text, World* world, const string & font_name);
+    void render_textbox(string text, World* world, const string & font_name) const;
   
     string m_text{""};
     string m_title_text{""};
@@ -243,7 +241,7 @@ class Textbox
     Panel* m_panel{nullptr};
     Selection<string>* m_selection{nullptr};
     Texture2D m_portrait_img{};
-    Animation m_continue_arrow_animation{vector<long>{}, 0, false, 0};
+    Blinking_Animation m_continue_arrow_animation{false, false, 0};
 };
 
 #endif

@@ -20,10 +20,10 @@ struct Name_Params
 
 struct Add_Caption_Params
 {
-  explicit Add_Caption_Params(const string & id, const string & text, const long & font, const long & y_pos) : m_id(id), m_text(text), m_font(font), m_y_pos(y_pos){}
+  explicit Add_Caption_Params(const string & id, const string & text, const string & font, const long & y_pos) : m_id(id), m_text(text), m_font(font), m_y_pos(y_pos){}
   string m_id{"NULL"};
   string m_text{"NULL"};
-  long m_font{};
+  string m_font{};
   long m_y_pos{0};
 };
 
@@ -149,7 +149,8 @@ enum class Script_Op
   Interact,
   Talk,
   Say_Choices,
-  Move_Camera_To_Tile
+  Move_Camera_To_Tile,
+  Battle_Transition
 };
 
 typedef variant

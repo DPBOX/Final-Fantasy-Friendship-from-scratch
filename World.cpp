@@ -3,7 +3,7 @@
 
 bool Stat_Modifier::operator==(const Stat_Modifier & rhs) const
 {
-  return m_id == rhs.get_id();
+  return m_id == rhs.get_id() && m_slot == rhs.get_slot();
 }
 
 string Stat_Modifier::get_id() const
@@ -34,6 +34,16 @@ long Stat_Modifier::get_add_modifier() const
 double Stat_Modifier::get_multiply_modifier() const
 {
   return m_multiply_modifier;
+}
+
+void Stat_Modifier::set_slot(const long & slot)
+{
+  m_slot = slot;
+}
+
+long Stat_Modifier::get_slot() const
+{
+  return m_slot;
 }
 
 void Stats::set_hp(const long & HP)
@@ -511,6 +521,17 @@ long Player_Stats::get_stat(const string & stat) const
   {
     if(m_modifiers[i].get_stat() == stat)
     {
+      if(m_modifiers[i].get_type() == "Replace")
+      {
+        return m_modifiers[i].get_replace_modifier();
+      }
+    }
+  }
+
+  for(long i{0}; i < static_cast<long>(m_modifiers.size()); ++i)
+  {
+    if(m_modifiers[i].get_stat() == stat)
+    {
       if(m_modifiers[i].get_type() == "Add")
       {
         extra += m_modifiers[i].get_add_modifier();
@@ -557,6 +578,21 @@ long Item::get_count() const
   return -1;
 }
 
+vector<Stat_Modifier> Item::get_stats() const
+{
+  return vector<Stat_Modifier>{};
+}
+
+vector<string> Item::get_usable_by() const
+{
+  return vector<string>{};
+}
+
+bool Item::can_equip(const string & party_member_name) const
+{
+  return false;
+}
+
 Consumable_Item::Consumable_Item(const string & name, const string & description)
 {
   m_name = name;
@@ -599,15 +635,16 @@ string Key_Item::get_description() const
   return m_description;
 }
 
-Equipment::Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by, const string & equipped_by)
+Equipment::Equipment(const string & name, const string & type, const string & description, const long & icon, const vector<Stat_Modifier> stats, const vector<string> & usable_by, const long & slot, const string & equipped_by, const long & count)
 {
   m_name = name;
   m_type = type;
   m_description = description;
   m_icon = icon;
-  m_count = 1;
+  m_count = count;
   m_stats = stats;
   m_usable_by = usable_by;
+  m_slot = slot;
   m_equipped_by = equipped_by;
 }
 
@@ -636,6 +673,16 @@ string Equipment::get_description() const
   return m_description + next;
 }
 
+vector<Stat_Modifier> Equipment::get_stats() const
+{
+  return m_stats;
+}
+
+vector<string> Equipment::get_usable_by() const
+{
+  return m_usable_by;
+}
+
 void Equipment::increment_count()
 {
   ++m_count;
@@ -649,6 +696,16 @@ void Equipment::decrement_count()
 long Equipment::get_count() const
 {
   return m_count;
+}
+
+string Equipment::get_equipped_by() const
+{
+  return m_equipped_by;
+}
+
+long Equipment::get_slot() const
+{
+  return m_slot;
 }
 
 bool Equipment::can_equip(const string & party_member_name) const
@@ -665,16 +722,6 @@ bool Equipment::can_equip(const string & party_member_name) const
     }
   }
   return false;
-}
-
-void Equipment::set_equip_by(const string & name)
-{
-  m_equipped_by = name;
-}
-
-string Equipment::equipped_by() const
-{
-  return m_equipped_by;
 }
 
 Party_Member::Party_Member(const Player_Info & player)
@@ -702,9 +749,48 @@ Party_Member::~Party_Member()
 {
   UnloadTexture(m_portrait);
   UnloadTexture(m_small_portrait);
-  delete m_font;
-  m_font = nullptr;
-  --mem;
+  if(m_font != nullptr)
+  {
+    delete m_font;
+    m_font = nullptr;
+    --mem;
+  }
+  if(m_equipped_weapon != nullptr)
+  {
+    delete m_equipped_weapon;
+    m_equipped_weapon = nullptr;
+    --mem;
+  }
+  if(m_equipped_offhand != nullptr)
+  {
+    delete m_equipped_offhand;
+    m_equipped_offhand = nullptr;
+    --mem;
+  }
+  if(m_equipped_helmet != nullptr)
+  {
+    delete m_equipped_helmet;
+    m_equipped_helmet = nullptr;
+    --mem;
+  }
+  if(m_equipped_armor != nullptr)
+  {
+    delete m_equipped_armor;
+    m_equipped_armor = nullptr;
+    --mem;
+  }
+  if(m_equipped_accessory_one != nullptr)
+  {
+    delete m_equipped_accessory_one;
+    m_equipped_accessory_one = nullptr;
+    --mem;
+  }
+  if(m_equipped_accessory_two != nullptr)
+  {
+    delete m_equipped_accessory_two;
+    m_equipped_accessory_two = nullptr;
+    --mem;
+  }
 }
 
 void Party_Member::update_stats()
@@ -779,6 +865,11 @@ void Party_Member::render_portrait(const bool & size, const long & x, const long
   }
 }
 
+void Party_Member::render_letter(const long & x, const long & y, const char & id) const
+{
+  m_font->render_letter(x, y, id);
+}
+
 bool Party_Member::set_front_row()
 {
   bool ret{m_row == false};
@@ -803,91 +894,246 @@ void Party_Member::level_up()
   m_stats.level_up();
 }
 
-void Party_Member::equip(World* world, const string & item_name)
+void Party_Member::equip(World* world, const string & item_name, const long & slot)
 {
-  string item_type{world->get_equipment_type(item_name)};
+  string item_type{world->get_item_type(item_name)};
 
   if(item_type == "Weapon")
   {
-    if(m_equipped_weapon == nullptr)
+    if(m_equipped_weapon != nullptr)
     {
-      m_equipped_weapon = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      unequip(world, item_type, slot);
+    }
+    Equipment* equip{new Equipment{item_name, "Weapon", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 0, m_name}};
+    ++mem;
+    m_equipped_weapon = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_weapon->get_stats().size()); ++i)
+    {
+      m_stats.add_modifier(m_equipped_weapon->get_stats()[i]);
     }
   }
   if(item_type == "Shield")
   {
-    if(m_equipped_offhand == nullptr)
+    if(m_equipped_offhand != nullptr)
     {
-      m_equipped_offhand = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      unequip(world, item_type, slot);
+    }
+    Equipment* equip{new Equipment{item_name, "Shield", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 0, m_name}};
+    ++mem;
+    m_equipped_offhand = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_offhand->get_stats().size()); ++i)
+    {
+      m_stats.add_modifier(m_equipped_offhand->get_stats()[i]);
     }
   }
   if(item_type == "Helm")
   {
-    if(m_equipped_helmet == nullptr)
+    if(m_equipped_helmet != nullptr)
     {
-      m_equipped_helmet = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      unequip(world, item_type, slot);
+    }
+    Equipment* equip{new Equipment{item_name, "Helm", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 0, m_name}};
+    ++mem;
+    m_equipped_helmet = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_helmet->get_stats().size()); ++i)
+    {
+      m_stats.add_modifier(m_equipped_helmet->get_stats()[i]);
     }
   }
   if(item_type == "Armor")
   {
-    if(m_equipped_armor == nullptr)
+    if(m_equipped_armor != nullptr)
     {
-      m_equipped_armor = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      unequip(world, item_type, slot);
+    }
+    Equipment* equip{new Equipment{item_name, "Armor", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 0, m_name}};
+    ++mem;
+    m_equipped_armor = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_armor->get_stats().size()); ++i)
+    {
+      m_stats.add_modifier(m_equipped_armor->get_stats()[i]);
     }
   }
-  if(item_type == "Accessory")
+  if(item_type == "Accessory" && slot == 0)
   {
-    if(m_equipped_accessory_one == nullptr)
+    if(m_equipped_accessory_one != nullptr)
     {
-      m_equipped_accessory_one = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      unequip(world, item_type, slot);
     }
-    else if(m_equipped_accessory_two == nullptr)
+    Equipment* equip{new Equipment{item_name, "Accessory", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 0, m_name}};
+    ++mem;
+    m_equipped_accessory_one = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_accessory_one->get_stats().size()); ++i)
     {
-      m_equipped_accessory_two = world->get_equipment(item_name);
-      world->get_equipment(item_name)->set_equip_by(m_name);
-      world->remove_equipment(item_name);
+      m_stats.add_modifier(m_equipped_accessory_one->get_stats()[i]);
+    }
+  }
+  if(item_type == "Accessory" && slot == 1)
+  {
+    if(m_equipped_accessory_two != nullptr)
+    {
+      unequip(world, item_type, slot);
+    }
+    Equipment* equip{new Equipment{item_name, "Accessory", world->get_item_description(item_name), m_icon, world->get_equipment_stat_modifiers(item_name, slot), world->get_equipment_usable_by(item_name), 1, m_name}};
+    ++mem;
+    m_equipped_accessory_two = equip;
+    world->remove_equipment(item_name);
+    for(long i{0}; i < static_cast<long>(m_equipped_accessory_two->get_stats().size()); ++i)
+    {
+      Stat_Modifier modifier{m_equipped_accessory_two->get_stats()[i]};
+      modifier.set_slot(slot);
+      m_stats.add_modifier(modifier);
     }
   }
 }
 
-Equipment* Party_Member::get_equipped_weapon() const
+void Party_Member::unequip(World* world, const string & item_type, const long & slot)
 {
-  return m_equipped_weapon;
+  if(item_type == "Weapon")
+  {
+    if(m_equipped_weapon != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_weapon->get_stats().size()); ++i)
+      {
+        m_stats.remove_modifier(m_equipped_weapon->get_stats()[i]);
+      }
+      world->add_equipment(m_equipped_weapon->get_name());
+      delete m_equipped_weapon;
+      m_equipped_weapon = nullptr;
+      --mem;
+    }
+  }
+  if(item_type == "Shield")
+  {
+    if(m_equipped_offhand != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_offhand->get_stats().size()); ++i)
+      {
+        m_stats.remove_modifier(m_equipped_offhand->get_stats()[i]);
+      }
+      world->add_equipment(m_equipped_offhand->get_name());
+      delete m_equipped_offhand;
+      m_equipped_offhand = nullptr;
+      --mem;
+    }
+  }
+  if(item_type == "Helm")
+  {
+    if(m_equipped_helmet != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_helmet->get_stats().size()); ++i)
+      {
+        m_stats.remove_modifier(m_equipped_helmet->get_stats()[i]);
+      }
+      world->add_equipment(m_equipped_helmet->get_name());
+      delete m_equipped_helmet;
+      m_equipped_helmet = nullptr;
+      --mem;
+    }
+  }
+  if(item_type == "Armor")
+  {
+    if(m_equipped_armor != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_armor->get_stats().size()); ++i)
+      {
+        m_stats.remove_modifier(m_equipped_armor->get_stats()[i]);
+      }
+      world->add_equipment(m_equipped_armor->get_name());
+      delete m_equipped_armor;
+      m_equipped_armor = nullptr;
+      --mem;
+    }
+  }
+  if(item_type == "Accessory" && slot == 0)
+  {
+    if(m_equipped_accessory_one != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_accessory_one->get_stats().size()); ++i)
+      {
+        m_stats.remove_modifier(m_equipped_accessory_one->get_stats()[i]);
+      }
+      world->add_equipment(m_equipped_accessory_one->get_name());
+      delete m_equipped_accessory_one;
+      m_equipped_accessory_one = nullptr;
+      --mem;
+    }
+  }
+  if(item_type == "Accessory" && slot == 1)
+  {
+    if(m_equipped_accessory_two != nullptr)
+    {
+      for(long i{0}; i < static_cast<long>(m_equipped_accessory_two->get_stats().size()); ++i)
+      {
+        Stat_Modifier modifier{m_equipped_accessory_two->get_stats()[i]};
+        modifier.set_slot(slot);
+        m_stats.remove_modifier(modifier);
+      }
+      world->add_equipment(m_equipped_accessory_two->get_name());
+      delete m_equipped_accessory_two;
+      m_equipped_accessory_two = nullptr;
+      --mem;
+    }
+  }
 }
 
-Equipment* Party_Member::get_equipped_shield() const
+string Party_Member::get_equipped_weapon() const
 {
-  return m_equipped_offhand;
+  if(m_equipped_weapon != nullptr)
+  {
+    return m_equipped_weapon->get_name();
+  }
+  return "NULL";
 }
 
-Equipment* Party_Member::get_equipped_helm() const
+string Party_Member::get_equipped_shield() const
 {
-  return m_equipped_helmet;
+  if(m_equipped_offhand != nullptr)
+  {
+    return m_equipped_offhand->get_name();
+  }
+  return "NULL";
 }
 
-Equipment* Party_Member::get_equipped_armor() const
+string Party_Member::get_equipped_helm() const
 {
-  return m_equipped_armor;
+  if(m_equipped_helmet != nullptr)
+  {
+    return m_equipped_helmet->get_name();
+  }
+  return "NULL";
 }
 
-Equipment* Party_Member::get_equipped_accessory_one() const
+string Party_Member::get_equipped_armor() const
 {
-  return m_equipped_accessory_one;
+  if(m_equipped_armor != nullptr)
+  {
+    return m_equipped_armor->get_name();
+  }
+  return "NULL";
 }
 
-Equipment* Party_Member::get_equipped_accessory_two() const
+string Party_Member::get_equipped_accessory_one() const
 {
-  return m_equipped_accessory_two;
+  if(m_equipped_accessory_one != nullptr)
+  {
+    return m_equipped_accessory_one->get_name();
+  }
+  return "NULL";
+}
+
+string Party_Member::get_equipped_accessory_two() const
+{
+  if(m_equipped_accessory_two != nullptr)
+  {
+    return m_equipped_accessory_two->get_name();
+  }
+  return "NULL";
 }
 
 long Party_Member::get_icon() const
@@ -895,14 +1141,79 @@ long Party_Member::get_icon() const
   return m_icon;
 }
 
-Fnt* Party_Member::get_font() const
+void Party_Member::restore_equipped_weapon(Equipment* equipment)
 {
-  return m_font;
+  if(m_equipped_weapon != nullptr)
+  {
+    delete m_equipped_weapon;
+    --mem;
+  }
+  m_equipped_weapon = equipment;
+}
+
+void Party_Member::restore_equipped_shield(Equipment* equipment)
+{
+  if(m_equipped_offhand != nullptr)
+  {
+    delete m_equipped_offhand;
+    --mem;
+  }
+  m_equipped_offhand = equipment;
+}
+
+void Party_Member::restore_equipped_helm(Equipment* equipment)
+{
+  if(m_equipped_helmet != nullptr)
+  {
+    delete m_equipped_helmet;
+    --mem;
+  }
+  m_equipped_helmet = equipment;
+}
+
+void Party_Member::restore_equipped_armor(Equipment* equipment)
+{
+  if(m_equipped_armor != nullptr)
+  {
+    delete m_equipped_armor;
+    --mem;
+  }
+  m_equipped_armor = equipment;
+}
+
+void Party_Member::restore_equipped_accessory_one(Equipment* equipment)
+{
+  if(m_equipped_accessory_one != nullptr)
+  {
+    delete m_equipped_accessory_one;
+    --mem;
+  }
+  m_equipped_accessory_one = equipment;
+}
+
+void Party_Member::restore_equipped_accessory_two(Equipment* equipment)
+{
+  if(m_equipped_accessory_two != nullptr)
+  {
+    delete m_equipped_accessory_two;
+    --mem;
+  }
+  m_equipped_accessory_two = equipment;
+}
+
+Player_Stats Party_Member::get_stats() const
+{
+  return m_stats;
+}
+
+void Party_Member::set_stats(const Player_Stats & stats)
+{
+  m_stats = stats;
 }
 
 void Party::update_stats()
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  for(long i{0}; i < m_members.get_list_size(); ++i)
   {
     m_members[i]->update_stats();
   }
@@ -910,67 +1221,47 @@ void Party::update_stats()
 
 void Party::add_party_member(const Player_Info & player)
 {
-  m_members.push_back(new Party_Member(player));
+  m_members.add(new Party_Member(player));
   ++mem;
 }
 
 void Party::remove_party_member(const string & name)
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(name == m_members[i]->get_name())
-    {
-      m_members.erase(m_members.begin() + i);
-    }
-  }
+  m_members.remove(name);
 }
 
 string Party::get_member_name(const long & index) const
 {
-  if(index < 0 || index >= static_cast<long>(m_members.size()))
-  {
-    crash("Error: Tried to get invalid party member " + to_string(index) + ".");
-  }
   return m_members[index]->get_name();
 }
 
 string Party::get_member_species(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_species();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return "NULL";
+  return m_members[name]->get_species();
 }
 
 string Party::get_member_class(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_class();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return "NULL";
+  return m_members[name]->get_class();
+}
+
+long Party::get_member_icon(const string & name) const
+{
+  return m_members[name]->get_icon();
 }
 
 string Party::get_next_member_name(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<string> party{m_members.get_list()};
+  for(long i{0}; i < static_cast<long>(party.size()); ++i)
   {
-    if(m_members[i]->get_name() == name)
+    if(party[i] == name)
     {
-      if(i + 1 == static_cast<long>(m_members.size()))
+      if(i + 1 == static_cast<long>(party.size()))
       {
-        return m_members[0]->get_name();
+        return m_members[party[0]]->get_name();
       }
-      return m_members[i + 1]->get_name();
+      return m_members[party[i + 1]]->get_name();
     }
   }
   crash("Error: Tried to get the party member after " + name + ", which is invalid.");
@@ -979,15 +1270,16 @@ string Party::get_next_member_name(const string & name) const
 
 string Party::get_previous_member_name(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<string> party{m_members.get_list()};
+  for(long i{0}; i < static_cast<long>(party.size()); ++i)
   {
-    if(m_members[i]->get_name() == name)
+    if(party[i] == name)
     {
       if(i - 1 < 0)
       {
-        return m_members[m_members.size() - 1]->get_name();
+        return m_members[party[party.size() - 1]]->get_name();
       }
-      return m_members[i - 1]->get_name();
+      return m_members[party[i - 1]]->get_name();
     }
   }
   crash("Error: Tried to get the party member before " + name + ", which is invalid.");
@@ -996,314 +1288,375 @@ string Party::get_previous_member_name(const string & name) const
 
 long Party::get_member_portrait_width(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_portrait_width();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_portrait_width();
 }
 
 long Party::get_member_portrait_height(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_portrait_height();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_portrait_height();
 }
 
 long Party::get_member_small_portrait_width(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_small_portrait_width();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_small_portrait_width();
 }
 
 long Party::get_member_small_portrait_height(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_small_portrait_height();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_small_portrait_height();
 }
 
 long Party::get_member_stat(const string & name, const string & stat) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_stat(stat);
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_stat(stat);
 }
 
 long Party::get_member_unmodified_stat(const string & name, const string & stat) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_unmodified_stat(stat);
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_unmodified_stat(stat);
 }
 
 bool Party::get_member_row(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_row();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return false;
+  return m_members[name]->get_row();
 }
 
 long Party::get_member_soul_break_level(const string & name) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->get_soul_break_level();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return -1;
+  return m_members[name]->get_soul_break_level();
 }
 
 void Party::render_member_portrait(const string & name, const bool & size, const long & x, const long & y) const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      m_members[i]->render_portrait(size, x, y);
-      return;
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
+  m_members[name]->render_portrait(size, x, y);
+}
+
+void Party::render_letter_in_member_font(const string & name, const long & x, const long & y, const char & id) const
+{
+  m_members[name]->render_letter(x, y, id);
 }
 
 long Party::get_size() const
 {
-  return m_members.size();
+  return m_members.get_list_size();
 }
 
 bool Party::set_member_front_row(const string & name)
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->set_front_row();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return false;
+  return m_members[name]->set_front_row();
 }
 
 bool Party::set_member_back_row(const string & name)
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i]->set_back_row();
-    }
-  }
-  crash("Error: Tried to get invalid party member " + name + ".");
-  return false;
+  return m_members[name]->set_back_row();
 }
 
 void Party::swap_party_members(const string & name1, const string & name2)
 {
-  long n1{-1};
-  long n2{-1};
-  Party_Member* temp{nullptr};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name1)
-    {
-      n1 = i;
-    }
-    if(m_members[i]->get_name() == name2)
-    {
-      n2 = i;
-    }
-  }
-  if(n1 == -1)
-  {
-    crash("Error: Tried to get invalid party member " + name1 + ".");
-  }
-  if(n2 == -1)
-  {
-    crash("Error: Tried to get invalid party member " + name2 + ".");
-  }
-  temp = m_members[n1];
-  m_members[n1] = m_members[n2];
-  m_members[n2] = temp;
+  m_members.swap(name1, name2);
 }
 
-void Party::equip(World* world, const string & party_member_name, const string & item_name)
+void Party::equip(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot)
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  if(source_party_member_name == target_party_member_name && source_slot == target_slot)
   {
-    if(m_members[i]->get_name() == party_member_name)
-    {
-      m_members[i]->equip(world, item_name);
-    }
+    m_members[target_party_member_name]->unequip(world, world->get_item_type(item_name), target_slot);
+    return;
   }
+  if(source_party_member_name != "NULL")
+  {
+    m_members[source_party_member_name]->unequip(world, world->get_item_type(item_name), source_slot);
+  }
+  m_members[target_party_member_name]->equip(world, item_name, target_slot);
 }
 
-vector<Equipment*> Party::get_equipped_equipment() const
+
+vector<Equipment*> Party::get_equipped_equipment_including_nulls(World* world) const
 {
   vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  string equip{"NULL"};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_weapon() != nullptr)
+    equip = m_members[j]->get_equipped_weapon();
+    if(equip != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_weapon());
+      equipment.push_back(new Equipment{equip, "Weapon", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 0), world->get_equipment_usable_by(equip), 0, m_members[j]->get_name()});
+      ++mem;
     }
-    if(m_members[i]->get_equipped_shield() != nullptr)
+    else
     {
-      equipment.push_back(m_members[i]->get_equipped_shield());
+      equipment.push_back(nullptr);
     }
-    if(m_members[i]->get_equipped_helm() != nullptr)
+
+    equip = m_members[j]->get_equipped_shield();
+    if(equip != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_helm());
+      equipment.push_back(new Equipment{equip, "Shield", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 0), world->get_equipment_usable_by(equip), 0, m_members[j]->get_name()});
+      ++mem;
     }
-    if(m_members[i]->get_equipped_armor() != nullptr)
+    else
     {
-      equipment.push_back(m_members[i]->get_equipped_armor());
+      equipment.push_back(nullptr);
     }
-    if(m_members[i]->get_equipped_accessory_one() != nullptr)
+
+    equip = m_members[j]->get_equipped_helm();
+    if(equip != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_accessory_one());
+      equipment.push_back(new Equipment{equip, "Helm", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 0), world->get_equipment_usable_by(equip), 0, m_members[j]->get_name()});
+      ++mem;
     }
-    if(m_members[i]->get_equipped_accessory_two() != nullptr)
+    else
     {
-      equipment.push_back(m_members[i]->get_equipped_accessory_two());
+      equipment.push_back(nullptr);
+    }
+
+    equip = m_members[j]->get_equipped_armor();
+    if(equip != "NULL")
+    {
+      equipment.push_back(new Equipment{equip, "Armor", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 0), world->get_equipment_usable_by(equip), 0, m_members[j]->get_name()});
+      ++mem;
+    }
+    else
+    {
+      equipment.push_back(nullptr);
+    }
+
+    equip = m_members[j]->get_equipped_accessory_one();
+    if(equip != "NULL")
+    {
+      equipment.push_back(new Equipment{equip, "Accessory", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 0), world->get_equipment_usable_by(equip), 0, m_members[j]->get_name()});
+      ++mem;
+    }
+    else
+    {
+      equipment.push_back(nullptr);
+    }
+
+    equip = m_members[j]->get_equipped_accessory_two();
+    if(equip != "NULL")
+    {
+      equipment.push_back(new Equipment{equip, "Accessory", world->get_item_description(equip), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(equip, 1), world->get_equipment_usable_by(equip), 1, m_members[j]->get_name()});
+      ++mem;
+    }
+    else
+    {
+      equipment.push_back(nullptr);
     }
   }
   return equipment;
 }
 
-vector<Equipment*> Party::get_equipped_weapons() const
+vector<Equipment*> Party::get_equipped_weapons(World* world) const
 {
-  vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<Equipment*> equipped_weapons{};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_weapon() != nullptr)
+    string weapon{m_members[j]->get_equipped_weapon()};
+    if(weapon != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_weapon());
+      equipped_weapons.push_back(new Equipment{weapon, "Weapon", world->get_item_description(weapon), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(weapon, 0), world->get_equipment_usable_by(weapon), 0, m_members[j]->get_name()});
+      ++mem;
     }
   }
-  return equipment;
+  return equipped_weapons;
 }
 
-vector<Equipment*> Party::get_equipped_shields() const
+vector<Equipment*> Party::get_equipped_shields(World* world) const
 {
-  vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<Equipment*> equipped_weapons{};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_shield() != nullptr)
+    string shield{m_members[j]->get_equipped_shield()};
+    if(shield != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_shield());
+      equipped_weapons.push_back(new Equipment{shield, "Shield", world->get_item_description(shield), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(shield, 0), world->get_equipment_usable_by(shield), 0, m_members[j]->get_name()});
+      ++mem;
     }
   }
-  return equipment;
+  return equipped_weapons;
 }
 
-vector<Equipment*> Party::get_equipped_helms() const
+vector<Equipment*> Party::get_equipped_helms(World* world) const
 {
-  vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<Equipment*> equipped_weapons{};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_helm() != nullptr)
+    string helm{m_members[j]->get_equipped_helm()};
+    if(helm != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_helm());
+      equipped_weapons.push_back(new Equipment{helm, "Helm", world->get_item_description(helm), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(helm, 0), world->get_equipment_usable_by(helm), 0, m_members[j]->get_name()});
+      ++mem;
     }
   }
-  return equipment;
+  return equipped_weapons;
 }
 
-vector<Equipment*> Party::get_equipped_armor() const
+vector<Equipment*> Party::get_equipped_armor(World* world) const
 {
-  vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<Equipment*> equipped_weapons{};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_armor() != nullptr)
+    string armor{m_members[j]->get_equipped_armor()};
+    if(armor != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_armor());
+      equipped_weapons.push_back(new Equipment{armor, "Armor", world->get_item_description(armor), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(armor, 0), world->get_equipment_usable_by(armor), 0, m_members[j]->get_name()});
+      ++mem;
     }
   }
-  return equipment;
+  return equipped_weapons;
 }
 
-vector<Equipment*> Party::get_equipped_accessories() const
+vector<Equipment*> Party::get_equipped_accessories(World* world) const
 {
-  vector<Equipment*> equipment{};
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  vector<Equipment*> equipped_weapons{};
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    if(m_members[i]->get_equipped_accessory_one() != nullptr)
+    string accessory_one{m_members[j]->get_equipped_accessory_one()};
+    string accessory_two{m_members[j]->get_equipped_accessory_two()};
+    if(accessory_one != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_accessory_one());
+      equipped_weapons.push_back(new Equipment{accessory_one, "Accessory", world->get_item_description(accessory_one), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(accessory_one, 0), world->get_equipment_usable_by(accessory_one), 0, m_members[j]->get_name()});
+      ++mem;
     }
-    if(m_members[i]->get_equipped_accessory_two() != nullptr)
+    if(accessory_two != "NULL")
     {
-      equipment.push_back(m_members[i]->get_equipped_accessory_two());
-    }
-  }
-  return equipment;
-}
-
-Party_Member* Party::get_member(const string & name) const
-{
-  for(long i {0}; i < static_cast<long>(m_members.size()); ++i)
-  {
-    if(m_members[i]->get_name() == name)
-    {
-      return m_members[i];
+      equipped_weapons.push_back(new Equipment{accessory_two, "Accessory", world->get_item_description(accessory_two), m_members[j]->get_icon(), world->get_equipment_stat_modifiers(accessory_two, 1), world->get_equipment_usable_by(accessory_two), 1, m_members[j]->get_name()});
+      ++mem;
     }
   }
-  crash("Error: \"" + name + "\" isn't in the party.");
-  return nullptr;
+  return equipped_weapons;
 }
 
-Party::~Party()
+bool Party::has_equipped_weapons() const
 {
-  for(long i{0}; i < static_cast<long>(m_members.size()); ++i)
+  for(long j{0}; j < m_members.get_list_size(); ++j)
   {
-    delete m_members[i];
-    m_members[i] = nullptr;
-    --mem;
+    if(m_members[j]->get_equipped_weapon() != "NULL")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Party::has_equipped_shields() const
+{
+  for(long j{0}; j < m_members.get_list_size(); ++j)
+  {
+    if(m_members[j]->get_equipped_shield() != "NULL")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Party::has_equipped_helms() const
+{
+  for(long j{0}; j < m_members.get_list_size(); ++j)
+  {
+    if(m_members[j]->get_equipped_helm() != "NULL")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Party::has_equipped_armor() const
+{
+  for(long j{0}; j < m_members.get_list_size(); ++j)
+  {
+    if(m_members[j]->get_equipped_armor() != "NULL")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Party::has_equipped_accessories() const
+{
+  for(long j{0}; j < m_members.get_list_size(); ++j)
+  {
+    if(m_members[j]->get_equipped_accessory_one() != "NULL")
+    {
+      return true;
+    }
+    if(m_members[j]->get_equipped_accessory_two() != "NULL")
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
+string Party::get_member_equipped_equipment(const string & party_member_name, const string & type) const
+{
+  if(type == "Weapon")
+  {
+    return m_members[party_member_name]->get_equipped_weapon();
+  }
+  else if(type == "Shield")
+  {
+    return m_members[party_member_name]->get_equipped_shield();
+  }
+  else if(type == "Helm")
+  {
+    return m_members[party_member_name]->get_equipped_helm();
+  }
+  else if(type == "Armor")
+  {
+    return m_members[party_member_name]->get_equipped_armor();
+  }
+  else if(type == "Accessory 1")
+  {
+    return m_members[party_member_name]->get_equipped_accessory_one();
+  }
+  else if(type == "Accessory 2")
+  {
+    return m_members[party_member_name]->get_equipped_accessory_two();
+  }
+  crash("Error: \"" + type + "\" is not an equipment type.");
+  return "NULL";
+}
+
+void Party::back_up_party_stats()
+{
+  for(long i{0}; i < m_members.get_list_size(); ++i)
+  {
+    m_stats_back_up.push_back(m_members[i]->get_stats());
+  }
+}
+
+void Party::restore_party_stats()
+{
+  for(long i{0}; i < m_members.get_list_size(); ++i)
+  {
+    m_members[i]->set_stats(m_stats_back_up[i]);
+  }
+  m_stats_back_up.clear();
+}
+
+void Party::restore_equipment(vector<Equipment*> equipment)
+{
+  long i{0};
+  long j{0};
+  while(i != static_cast<long>(equipment.size()))
+  {
+    m_members[j]->restore_equipped_weapon(equipment[i]);
+    ++i;
+    m_members[j]->restore_equipped_shield(equipment[i]);
+    ++i;
+    m_members[j]->restore_equipped_helm(equipment[i]);
+    ++i;
+    m_members[j]->restore_equipped_armor(equipment[i]);
+    ++i;
+    m_members[j]->restore_equipped_accessory_one(equipment[i]);
+    ++i;
+    m_members[j]->restore_equipped_accessory_two(equipment[i]);
+    ++i;
+    ++j;
   }
 }
 
@@ -1313,14 +1666,18 @@ World::World()
 
   m_cursor = new Cursor;
   ++mem;
-  
-  m_fonts.push_back(new Fnt);
+  m_fonts.add(vector<Fnt*>
+  {
+    new Fnt,
+    new Fnt{HEADING_FONT},
+    new Fnt{CHARACTER_TITLE_FONT},
+    new Fnt{RED_FONT},
+    new Fnt{GREEN_FONT}
+  });
   ++mem;
-  m_fonts.push_back(new Fnt{HEADING_FONT});
   ++mem;
-  m_fonts.push_back(new Fnt{CHARACTER_TITLE_FONT});
   ++mem;
-  m_fonts.push_back(new Fnt{RED_FONT});
+  ++mem;
   ++mem;
 
   m_time.start();
@@ -1336,6 +1693,15 @@ World::World()
   UnloadImage(image3);
   
   m_party.add_party_member(TEMPEST_SHADOW_INFO);
+  add_item("Heal Potion");
+  add_item("Heal Potion");
+  add_item("Money Bag");
+  add_item("Money Bag");
+
+  Music music{LoadMusicStreamFromMemory(".mp3", CITY_MUSIC.m_data, CITY_MUSIC.m_size)};
+  m_global_music.push_back(music);
+
+  m_global_music_names.push_back(CITY_MUSIC.m_name);
   
   Wave wave{LoadWaveFromMemory(".wav", CURSOR_SOUND.m_data, CURSOR_SOUND.m_size)};
   m_global_sounds.push_back(LoadSoundFromWave(wave));
@@ -1391,6 +1757,7 @@ World::~World()
   UnloadTexture(m_item_icons_tex);
   UnloadTexture(m_panel_texture);
   UnloadTexture(m_continue_arrow_texture);
+
   delete m_cursor;
   m_cursor = nullptr;
   --mem;
@@ -1398,78 +1765,38 @@ World::~World()
   {
     UnloadTexture(m_progress_bar_textures[i]);
   }
-  for(long i{0}; i < static_cast<long>(m_fonts.size()); ++i)
-  {
-    delete m_fonts[i];
-    m_fonts[i] = nullptr;
-    --mem;
-  }
   for(long i{0}; i < static_cast<long>(m_global_sounds.size()); ++i)
   {
     UnloadSound(m_global_sounds[i]);
   }
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
   {
-    delete m_items[i];
-    m_items[i] = nullptr;
-    --mem;
-  }
-  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
-  {
-    delete m_key_items[i];
-    m_key_items[i] = nullptr;
-    --mem;
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    delete m_equipment[i];
-    m_equipment[i] = nullptr;
-    --mem;
-  }
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
-  {
-    delete m_item_database[i];
-    m_item_database[i] = nullptr;
-    --mem;
+    UnloadMusicStream(m_global_music[i]);
   }
 }
 
 void World::update()
 {
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
+  {
+    if(m_global_music_names[i] == m_music_playing)
+    {
+      if(IsMusicStreamPlaying(m_global_music[i]) == true)
+      {
+        UpdateMusicStream(m_global_music[i]);
+      }
+    }
+  }
   m_party.update_stats();
   m_cursor->finish();
   m_cursor->update();
 }
 
-bool World::can_use_weapon(const string & party_member_name, const long & item_index) const
+bool World::can_use_equipment(const string & party_member_name, const string & item_name, const string & type) const
 {
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_weapons().size()))
+  if((m_item_database[item_name]->get_name() == item_name && type == "NULL") || m_item_database[item_name]->get_type() == type)
   {
-    string name{get_weapons().at(item_index)};
-    for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-    {
-      if(name == m_equipment[i]->get_name())
-      {
-        equipment = m_equipment[i];
-      }
-    }
-    if(equipment == nullptr)
-    {
-      vector<Equipment*> equipped_equipment{m_party.get_equipped_equipment()};
-      for(long i{0}; i < static_cast<long>(equipped_equipment.size()); ++i)
-      {
-        if(name == equipped_equipment[i]->get_name())
-        {
-          equipment = equipped_equipment[i];
-        }
-      }
-    }
-  }
-
-  if(equipment != nullptr)
-  {
-    if(equipment->can_equip(party_member_name) == true)
+    if(m_item_database[item_name]->can_equip(party_member_name) == true)
     {
       return true;
     }
@@ -1477,596 +1804,163 @@ bool World::can_use_weapon(const string & party_member_name, const long & item_i
   return false;
 }
 
-bool World::can_use_shield(const string & party_member_name, const long & item_index) const
+void World::equip(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot)
 {
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_shields().size()))
-  {
-    string name{get_shields().at(item_index)};
-    for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-    {
-      if(name == m_equipment[i]->get_name())
-      {
-        equipment = m_equipment[i];
-      }
-    }
-    if(equipment == nullptr)
-    {
-      vector<Equipment*> equipped_equipment{m_party.get_equipped_equipment()};
-      for(long i{0}; i < static_cast<long>(equipped_equipment.size()); ++i)
-      {
-        if(name == equipped_equipment[i]->get_name())
-        {
-          equipment = equipped_equipment[i];
-        }
-      }
-    }
-  }
-
-  if(equipment != nullptr)
-  {
-    if(equipment->can_equip(party_member_name) == true)
-    {
-      return true;
-    }
-  }
-  return false;
+  m_party.equip(world, item_name, target_party_member_name, target_slot, source_party_member_name, source_slot);
 }
 
-bool World::can_use_helm(const string & party_member_name, const long & item_index) const
+void World::render_item(const long & x, const long & y, const string & font_name, const string & item_name, const long & width) const
 {
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_helms().size()))
-  {
-    string name{get_helms().at(item_index)};
-    for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-    {
-      if(name == m_equipment[i]->get_name())
-      {
-        equipment = m_equipment[i];
-      }
-    }
-    if(equipment == nullptr)
-    {
-      vector<Equipment*> equipped_equipment{m_party.get_equipped_equipment()};
-      for(long i{0}; i < static_cast<long>(equipped_equipment.size()); ++i)
-      {
-        if(name == equipped_equipment[i]->get_name())
-        {
-          equipment = equipped_equipment[i];
-        }
-      }
-    }
-  }
+  long current_pos{x};
+  DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_name]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_name]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+  current_pos += ICON_WIDTH;
 
-  if(equipment != nullptr)
-  {
-    if(equipment->can_equip(party_member_name) == true)
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool World::can_use_armor(const string & party_member_name, const long & item_index) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_armor().size()))
-  {
-    string name{get_armor().at(item_index)};
-    for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-    {
-      if(name == m_equipment[i]->get_name())
-      {
-        equipment = m_equipment[i];
-      }
-    }
-    if(equipment == nullptr)
-    {
-      vector<Equipment*> equipped_equipment{m_party.get_equipped_equipment()};
-      for(long i{0}; i < static_cast<long>(equipped_equipment.size()); ++i)
-      {
-        if(name == equipped_equipment[i]->get_name())
-        {
-          equipment = equipped_equipment[i];
-        }
-      }
-    }
-  }
-
-  if(equipment != nullptr)
-  {
-    if(equipment->can_equip(party_member_name) == true)
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool World::can_use_accessory(const string & party_member_name, const long & item_index) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_accessories().size()))
-  {
-    string name{get_accessories().at(item_index)};
-    for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-    {
-      if(name == m_equipment[i]->get_name())
-      {
-        equipment = m_equipment[i];
-      }
-    }
-    if(equipment == nullptr)
-    {
-      vector<Equipment*> equipped_equipment{m_party.get_equipped_equipment()};
-      for(long i{0}; i < static_cast<long>(equipped_equipment.size()); ++i)
-      {
-        if(name == equipped_equipment[i]->get_name())
-        {
-          equipment = equipped_equipment[i];
-        }
-      }
-    }
-  }
-
-  if(equipment != nullptr)
-  {
-    if(equipment->can_equip(party_member_name) == true)
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-void World::equip(World* world, const string & party_member_name, const string & item_name)
-{
-  m_party.equip(world, party_member_name, item_name);
-}
-
-void World::render_item(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  if(item_index >= 0 && item_index < static_cast<long>(m_items.size()))
-  {
-    long current_pos{x};
-    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_items[item_index]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-    current_pos += ICON_WIDTH;
-
-    string text{m_items[item_index]->get_name()};
-    while(text != "")
-    {
-      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-      current_pos += m_fonts[font_no]->get_char_width(text[0]);
-      text.erase(text.begin());
-    }
-
-    current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-    text = "x" + to_string(m_items[item_index]->get_count());
-    while(text != "")
-    {
-      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-      current_pos += m_fonts[font_no]->get_char_width(text[0]);
-      text.erase(text.begin());
-    }
-  }
-}
-
-void World::render_key_item(const long & x, const long & y, const long & font_no, const long & item_index) const
-{
-  if(item_index >= 0 && item_index < static_cast<long>(m_key_items.size()))
-  {
-    long current_pos{x};
-    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_key_items[item_index]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-    current_pos += ICON_WIDTH;
-
-    string text{m_key_items[item_index]->get_name()};
-    while(text != "")
-    {
-      m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-      current_pos += m_fonts[font_no]->get_char_width(text[0]);
-      text.erase(text.begin());
-    }
-  }
-}
-
-void World::render_weapon(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_weapons().size()))
-  {
-    string name{get_weapons().at(item_index)};
-    long num_equipped_weapons{static_cast<long>(m_party.get_equipped_weapons().size())};
-    if(item_index < num_equipped_weapons)
-    {
-      equipment = m_party.get_equipped_weapons().at(item_index);
-    }
-    else
-    {
-      for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-      {
-        if(name == m_equipment[i]->get_name())
-        {
-          equipment = m_equipment[i];
-        }
-      }
-    }
-
-    long current_pos{x};
-    if(equipment->equipped_by() == "NULL")
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * equipment->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "x" + to_string(equipment->get_count());
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-    else
-    {
-      Party_Member* member{m_party.get_member(equipment->equipped_by())};
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * member->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (member->get_font()->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "E";
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-  }
-}
-
-void World::render_shield(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_shields().size()))
-  {
-    string name{get_shields().at(item_index)};
-    long num_equipped_weapons{static_cast<long>(m_party.get_equipped_shields().size())};
-    if(item_index < num_equipped_weapons)
-    {
-      equipment = m_party.get_equipped_shields().at(item_index);
-    }
-    else
-    {
-      for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-      {
-        if(name == m_equipment[i]->get_name())
-        {
-          equipment = m_equipment[i];
-        }
-      }
-    }
-
-    long current_pos{x};
-    if(equipment->equipped_by() == "NULL")
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * equipment->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "x" + to_string(equipment->get_count());
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-    else
-    {
-      Party_Member* member{m_party.get_member(equipment->equipped_by())};
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * member->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (member->get_font()->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "E";
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-  }
-}
-
-void World::render_helm(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_helms().size()))
-  {
-    string name{get_helms().at(item_index)};
-    long num_equipped_weapons{static_cast<long>(m_party.get_equipped_helms().size())};
-    if(item_index < num_equipped_weapons)
-    {
-      equipment = m_party.get_equipped_helms().at(item_index);
-    }
-    else
-    {
-      for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-      {
-        if(name == m_equipment[i]->get_name())
-        {
-          equipment = m_equipment[i];
-        }
-      }
-    }
-
-    long current_pos{x};
-    if(equipment->equipped_by() == "NULL")
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * equipment->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "x" + to_string(equipment->get_count());
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-    else
-    {
-      Party_Member* member{m_party.get_member(equipment->equipped_by())};
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * member->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (member->get_font()->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "E";
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-  }
-}
-
-void World::render_armor(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_armor().size()))
-  {
-    string name{get_armor().at(item_index)};
-    long num_equipped_weapons{static_cast<long>(m_party.get_equipped_armor().size())};
-    if(item_index < num_equipped_weapons)
-    {
-      equipment = m_party.get_equipped_armor().at(item_index);
-    }
-    else
-    {
-      for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-      {
-        if(name == m_equipment[i]->get_name())
-        {
-          equipment = m_equipment[i];
-        }
-      }
-    }
-
-    long current_pos{x};
-    if(equipment->equipped_by() == "NULL")
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * equipment->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "x" + to_string(equipment->get_count());
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-    else
-    {
-      Party_Member* member{m_party.get_member(equipment->equipped_by())};
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * member->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (member->get_font()->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "E";
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-  }
-}
-
-void World::render_accessory(const long & x, const long & y, const long & font_no, const long & item_index, const long & width) const
-{
-  Equipment* equipment{nullptr};
-  if(item_index >= 0 && item_index < static_cast<long>(get_accessories().size()))
-  {
-    string name{get_accessories().at(item_index)};
-    long num_equipped_weapons{static_cast<long>(m_party.get_equipped_accessories().size())};
-    if(item_index < num_equipped_weapons)
-    {
-      equipment = m_party.get_equipped_accessories().at(item_index);
-    }
-    else
-    {
-      for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-      {
-        if(name == m_equipment[i]->get_name())
-        {
-          equipment = m_equipment[i];
-        }
-      }
-    }
-
-    long current_pos{x};
-    if(equipment->equipped_by() == "NULL")
-    {
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * equipment->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_no]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "x" + to_string(equipment->get_count());
-      while(text != "")
-      {
-        m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-        current_pos += m_fonts[font_no]->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-    else
-    {
-      Party_Member* member{m_party.get_member(equipment->equipped_by())};
-      DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * member->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (member->get_font()->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-      current_pos += ICON_WIDTH;
-
-      string text{equipment->get_name()};
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
-      text = "E";
-      while(text != "")
-      {
-        member->get_font()->render_letter(current_pos, y, text[0]);
-        current_pos += member->get_font()->get_char_width(text[0]);
-        text.erase(text.begin());
-      }
-    }
-  }
-}
-
-void World::render_stat(const long & x, const long & y, const long & font_no, const long & item_index, const long & width, const string & name) const
-{
-  long current_pos{static_cast<long>(x + width * STAT_LOCATION_FRACTION)};
-  string text;
-
-  switch(item_index)
-  {
-    case 0:
-      text = to_string(m_party.get_member_stat(name, "Strength")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Strength")) + ")";
-      break;
-    case 1:
-      text = to_string(m_party.get_member_stat(name, "Attack")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Attack")) + ")";
-      break;
-    case 3:
-      text = to_string(m_party.get_member_stat(name, "Speed")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Speed")) + ")";
-      break;
-    case 4:
-      text = to_string(m_party.get_member_stat(name, "Defense")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Defense")) + ")";
-      break;
-    case 6:
-      text = to_string(m_party.get_member_stat(name, "Intellect")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Intellect")) + ")";
-      break;
-    case 7:
-      text = to_string(m_party.get_member_stat(name, "Resistance")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Resistance")) + ")";
-      break;
-    case 9:
-      text = to_string(m_party.get_member_stat(name, "Stamina")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Stamina")) + ")";
-      break;
-    case 10:
-      text = to_string(m_party.get_member_stat(name, "Accuracy")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Accuracy")) + ")";
-      break;
-    case 12:
-      text = to_string(m_party.get_member_stat(name, "Spirit")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Spirit")) + ")";
-      break;
-    case 13:
-      text = to_string(m_party.get_member_stat(name, "Critical")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Critical")) + ")";
-      break;
-    case 15:
-      text = to_string(m_party.get_member_stat(name, "Evasion")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Evasion")) + ")";
-      break;
-    case 16:
-      text = to_string(m_party.get_member_stat(name, "Magic Evasion")) + " (" + to_string(m_party.get_member_unmodified_stat(name, "Magic Evasion")) + ")";
-      break;
-    default:
-      break;
-  }
-
+  string text{item_name};
   while(text != "")
   {
-    m_fonts[font_no]->render_letter(current_pos, y, text[0]);
-    current_pos += m_fonts[font_no]->get_char_width(text[0]);
+    m_fonts[font_name]->render_letter(current_pos, y, text[0]);
+    current_pos += m_fonts[font_name]->get_char_width(text[0]);
+    text.erase(text.begin());
+  }
+
+  current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
+  text = "x" + to_string(m_items[item_name]->get_count());
+  while(text != "")
+  {
+    m_fonts[font_name]->render_letter(current_pos, y, text[0]);
+    current_pos += m_fonts[font_name]->get_char_width(text[0]);
+    text.erase(text.begin());
+  }
+}
+
+void World::render_key_item(const long & x, const long & y, const string & font_name, const string & item_name) const
+{
+  long current_pos{x};
+  DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_key_items[item_name]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_name]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+  current_pos += ICON_WIDTH;
+
+  string text{item_name};
+  while(text != "")
+  {
+    m_fonts[font_name]->render_letter(current_pos, y, text[0]);
+    current_pos += m_fonts[font_name]->get_char_width(text[0]);
+    text.erase(text.begin());
+  }
+}
+
+void World::render_equipment(const long & x, const long & y, const string & font_name, const string & item_name, const long & width, const bool & show_quantity, const string & equipped_by) const
+{
+  long current_pos{x};
+  if(equipped_by == "NULL")
+  {
+    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_item_database[item_name]->get_icon()), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (m_fonts[font_name]->get_height() - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    current_pos += ICON_WIDTH;
+
+    string text{item_name};
+    while(text != "")
+    {
+      m_fonts[font_name]->render_letter(current_pos, y, text[0]);
+      current_pos += m_fonts[font_name]->get_char_width(text[0]);
+      text.erase(text.begin());
+    }
+    if(show_quantity == true)
+    {
+      current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
+      text = "x" + to_string(m_equipment[item_name]->get_count());
+      while(text != "")
+      {
+        m_fonts[font_name]->render_letter(current_pos, y, text[0]);
+        current_pos += m_fonts[font_name]->get_char_width(text[0]);
+        text.erase(text.begin());
+      }
+    }
+  }
+  else
+  {
+    DrawTexturePro(m_item_icons_tex, Rectangle{static_cast<float>(ICON_WIDTH * m_party.get_member_icon(equipped_by)), 0, ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y + (FONT_TEXT_HEIGHT - m_item_icons_tex.height) / 2.0), ICON_WIDTH, static_cast<float>(m_item_icons_tex.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+    current_pos += ICON_WIDTH;
+
+    string text{item_name};
+    while(text != "")
+    {
+      font_name == "Red" ? m_fonts[font_name]->render_letter(current_pos, y, text[0]) : m_party.render_letter_in_member_font(equipped_by, current_pos, y, text[0]);
+      current_pos += m_fonts[font_name]->get_char_width(text[0]);
+      text.erase(text.begin());
+    }
+    current_pos = x + width * ITEM_QUANTITY_LOCATION_FRACTION;
+    text = "E";
+    while(text != "")
+    {
+      font_name == "Red" ? m_fonts[font_name]->render_letter(current_pos, y, text[0]) : m_party.render_letter_in_member_font(equipped_by, current_pos, y, text[0]);
+      current_pos += m_fonts[font_name]->get_char_width(text[0]);
+      text.erase(text.begin());
+    }
+  }
+}
+
+void World::render_stat(const long & x, const long & y, const string & font_name, const string & stat_name, const long & width, const string & party_member_name, const vector<long> & equipment_stat_differences) const
+{
+  long vec_index{0};
+  if(equipment_stat_differences.empty() == true)
+  {
+    vec_index = -1;
+  }
+  else if(stat_name == "Strength")
+  {
+    vec_index = 0;
+  }
+  else if(stat_name == "Attack")
+  {
+    vec_index = 1;
+  }
+  else if(stat_name == "Speed")
+  {
+    vec_index = 2;
+  }
+  else if(stat_name == "Defense")
+  {
+    vec_index = 3;
+  }
+  else if(stat_name == "Intellect")
+  {
+    vec_index = 4;
+  }
+  else if(stat_name == "Resistance")
+  {
+    vec_index = 5;
+  }
+  else if(stat_name == "Stamina")
+  {
+    vec_index = 6;
+  }
+  else if(stat_name == "Accuracy")
+  {
+    vec_index = 7;
+  }
+  else if(stat_name == "Spirit")
+  {
+    vec_index = 8;
+  }
+  else if(stat_name == "Critical")
+  {
+    vec_index = 9;
+  }
+  else if(stat_name == "Evasion")
+  {
+    vec_index = 10;
+  }
+  else if(stat_name == "Magic Evasion")
+  {
+    vec_index = 11;
+  }
+
+  long current_pos{static_cast<long>(x + width * STAT_LOCATION_FRACTION)};
+  string text;
+  text = to_string(m_party.get_member_stat(party_member_name, stat_name)) + " (" + to_string(m_party.get_member_unmodified_stat(party_member_name, stat_name)) + ")" + (vec_index != -1 ? (" " + (equipment_stat_differences[vec_index] > 0 ? ("+" + to_string(equipment_stat_differences[vec_index])) : (equipment_stat_differences[vec_index] != 0 ? to_string(equipment_stat_differences[vec_index]) : ""))) : "");
+  while(text != "")
+  {
+    m_fonts[vec_index != -1 ? (equipment_stat_differences[vec_index] > 0 ? "Green" : (equipment_stat_differences[vec_index] == 0 ? "Text" : "Red")) : "Text"]->render_letter(current_pos, y, text[0]);
+    current_pos += m_fonts[font_name]->get_char_width(text[0]);
     text.erase(text.begin());
   }
 }
@@ -2076,40 +1970,19 @@ void World::render_cursor() const
   m_cursor->render();
 }
 
-void World::render_text_center(const long & font_no, const string & text, const long & y_pos, const long & alpha) const
+void World::render_text_center(const string & font_name, const string & text, const long & y_pos, const long & alpha) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  else
-  {
-    m_fonts[font_no]->render_text_center(text, y_pos, alpha);
-  }
+  m_fonts[font_name]->render_text_center(text, y_pos, alpha);
 }
 
-void World::render_text(const long & font_no, const string & text, const long & x_pos, const long & y_pos, const long & alpha) const
+void World::render_text(const string & font_name, const string & text, const long & x_pos, const long & y_pos, const long & alpha) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  else
-  {
-    m_fonts[font_no]->render_text(text, x_pos, y_pos, alpha);
-  }
+  m_fonts[font_name]->render_text(text, x_pos, y_pos, alpha);
 }
 
-void World::render_letter(const long & font_no, const long & x, const long & y, const char & id, const long & alpha) const
+void World::render_letter(const string & font_name, const long & x, const long & y, const char & id, const long & alpha) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  else
-  {
-    m_fonts[font_no]->render_letter(x, y, id, alpha);
-  }
+  m_fonts[font_name]->render_letter(x, y, id, alpha);
 }
 
 void World::render_panel(const double & x, const double & y, const double & w, const double & h) const
@@ -2130,9 +2003,9 @@ void World::render_panel(const double & x, const double & y, const double & w, c
   DrawTexturePro(m_panel_texture, Rectangle{PANEL_TILE_WIDTH * 4, 0, PANEL_TILE_WIDTH, static_cast<float>(m_panel_texture.height)}, Rectangle{static_cast<float>(x + PANEL_TILE_WIDTH), static_cast<float>(y + m_panel_texture.height), static_cast<float>(w - PANEL_TILE_WIDTH * 2), static_cast<float>(h - m_panel_texture.height * 2)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, PANEL_ALPHA});
 }
 
-void World::render_continue_arrow(const long & x, const long & y) const
+void World::render_continue_arrow(const long & x, const long & y, const bool & flip_y) const
 {
-  DrawTexturePro(m_continue_arrow_texture, Rectangle{0, 0, static_cast<float>(m_continue_arrow_texture.width), static_cast<float>(m_continue_arrow_texture.height)}, Rectangle{static_cast<float>(x - m_continue_arrow_texture.width / 2), static_cast<float>(y), static_cast<float>(m_continue_arrow_texture.width), static_cast<float>(m_continue_arrow_texture.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+  DrawTexturePro(m_continue_arrow_texture, Rectangle{0, 0, static_cast<float>(m_continue_arrow_texture.width), static_cast<float>(m_continue_arrow_texture.height)}, Rectangle{static_cast<float>(x - m_continue_arrow_texture.width / 2), static_cast<float>(y), static_cast<float>(m_continue_arrow_texture.width), static_cast<float>(m_continue_arrow_texture.height)}, Vector2{static_cast<float>(m_continue_arrow_texture.width / 2), 0}, 180 * flip_y, Color{0xFF, 0xFF, 0xFF, 0xFF});
 }
 
 void World::render_progress_bar(const string & progress_bar_name, const long & x, const long & y) const
@@ -2148,330 +2021,396 @@ void World::render_progress_bar(const string & progress_bar_name, const long & x
 
 vector<string> World::get_items() const
 {
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
-  {
-    items.push_back(m_items[i]->get_name());
-  }
-  return items;
+  return m_items.get_list();;
 }
 
 vector<string> World::get_key_items() const
 {
-  vector<string> key_items;
-  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
+  return m_key_items.get_list();
+}
+/*
+vector<string> World::get_equipment() const
+{
+  return vector<string>{get_weapons() + get_shields() + get_helms() + get_armor() + get_accessories()};
+}
+*/
+vector<Equipment*> World::get_weapons(World* world) const
+{
+  vector<Equipment*> equipped_weapons{m_party.get_equipped_weapons(world)};
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    key_items.push_back(m_key_items[i]->get_name());
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Weapon")
+    {
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
+    }
+    ++i;
   }
-  return key_items;
+  for(long j{0}; j < static_cast<long>(inventory_equipment.size()); ++j)
+  {
+    equipped_weapons.push_back(new Equipment{inventory_equipment[j], m_equipment[inventory_equipment[j]]->get_type(), m_equipment[inventory_equipment[j]]->get_description(), m_equipment[inventory_equipment[j]]->get_icon(), m_equipment[inventory_equipment[j]]->get_stats(), m_equipment[inventory_equipment[j]]->get_usable_by(), m_equipment[inventory_equipment[j]]->get_slot(), m_equipment[inventory_equipment[j]]->get_equipped_by()});
+    ++mem;
+  }
+  return equipped_weapons;
 }
 
-vector<string> World::get_weapons() const
+vector<Equipment*> World::get_shields(World* world) const
 {
-  vector<Equipment*> equipped_weapons{m_party.get_equipped_weapons()};
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(equipped_weapons.size()); ++i)
+  vector<Equipment*> equipped_weapons{m_party.get_equipped_shields(world)};
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    items.push_back(equipped_weapons[i]->get_name());
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Weapon")
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Shield")
     {
-      items.push_back(m_equipment[i]->get_name());
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
     }
+    ++i;
   }
-  return items;
+  for(long j{0}; j < static_cast<long>(inventory_equipment.size()); ++j)
+  {
+    equipped_weapons.push_back(new Equipment{inventory_equipment[j], m_equipment[inventory_equipment[j]]->get_type(), m_equipment[inventory_equipment[j]]->get_description(), m_equipment[inventory_equipment[j]]->get_icon(), m_equipment[inventory_equipment[j]]->get_stats(), m_equipment[inventory_equipment[j]]->get_usable_by(), m_equipment[inventory_equipment[j]]->get_slot(), m_equipment[inventory_equipment[j]]->get_equipped_by()});
+    ++mem;
+  }
+  return equipped_weapons;
 }
 
-vector<string> World::get_shields() const
+vector<Equipment*> World::get_helms(World* world) const
 {
-  vector<Equipment*> equipped_weapons{m_party.get_equipped_shields()};
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(equipped_weapons.size()); ++i)
+  vector<Equipment*> equipped_weapons{m_party.get_equipped_helms(world)};
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    items.push_back(equipped_weapons[i]->get_name());
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Helm")
     {
-      items.push_back(m_equipment[i]->get_name());
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
     }
+    ++i;
   }
-  return items;
+  for(long j{0}; j < static_cast<long>(inventory_equipment.size()); ++j)
+  {
+    equipped_weapons.push_back(new Equipment{inventory_equipment[j], m_equipment[inventory_equipment[j]]->get_type(), m_equipment[inventory_equipment[j]]->get_description(), m_equipment[inventory_equipment[j]]->get_icon(), m_equipment[inventory_equipment[j]]->get_stats(), m_equipment[inventory_equipment[j]]->get_usable_by(), m_equipment[inventory_equipment[j]]->get_slot(), m_equipment[inventory_equipment[j]]->get_equipped_by()});
+    ++mem;
+  }
+  return equipped_weapons;
 }
 
-vector<string> World::get_helms() const
+vector<Equipment*> World::get_armor(World* world) const
 {
-  vector<Equipment*> equipped_weapons{m_party.get_equipped_helms()};
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(equipped_weapons.size()); ++i)
+  vector<Equipment*> equipped_weapons{m_party.get_equipped_armor(world)};
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    items.push_back(equipped_weapons[i]->get_name());
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Armor")
     {
-      items.push_back(m_equipment[i]->get_name());
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
     }
+    ++i;
   }
-  return items;
+  for(long j{0}; j < static_cast<long>(inventory_equipment.size()); ++j)
+  {
+    equipped_weapons.push_back(new Equipment{inventory_equipment[j], m_equipment[inventory_equipment[j]]->get_type(), m_equipment[inventory_equipment[j]]->get_description(), m_equipment[inventory_equipment[j]]->get_icon(), m_equipment[inventory_equipment[j]]->get_stats(), m_equipment[inventory_equipment[j]]->get_usable_by(), m_equipment[inventory_equipment[j]]->get_slot(), m_equipment[inventory_equipment[j]]->get_equipped_by()});
+    ++mem;
+  }
+  return equipped_weapons;
 }
 
-vector<string> World::get_armor() const
+vector<Equipment*> World::get_accessories(World* world) const
 {
-  vector<Equipment*> equipped_weapons{m_party.get_equipped_armor()};
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(equipped_weapons.size()); ++i)
+  vector<Equipment*> equipped_weapons{m_party.get_equipped_accessories(world)};
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    items.push_back(equipped_weapons[i]->get_name());
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Armor")
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Accessory")
     {
-      items.push_back(m_equipment[i]->get_name());
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
     }
+    ++i;
   }
-  return items;
+  for(long j{0}; j < static_cast<long>(inventory_equipment.size()); ++j)
+  {
+    equipped_weapons.push_back(new Equipment{inventory_equipment[j], m_equipment[inventory_equipment[j]]->get_type(), m_equipment[inventory_equipment[j]]->get_description(), m_equipment[inventory_equipment[j]]->get_icon(), m_equipment[inventory_equipment[j]]->get_stats(), m_equipment[inventory_equipment[j]]->get_usable_by(), m_equipment[inventory_equipment[j]]->get_slot(), m_equipment[inventory_equipment[j]]->get_equipped_by()});
+    ++mem;
+  }
+  return equipped_weapons;
 }
 
-vector<string> World::get_accessories() const
+string World::get_item_type(const string & item_name) const
 {
-  vector<Equipment*> equipped_weapons{m_party.get_equipped_accessories()};
-  vector<string> items;
-  for(long i{0}; i < static_cast<long>(equipped_weapons.size()); ++i)
-  {
-    items.push_back(equipped_weapons[i]->get_name());
-  }
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Accessory")
-    {
-      items.push_back(m_equipment[i]->get_name());
-    }
-  }
-  return items;
+  return m_item_database[item_name]->get_type();
 }
 
 string World::get_item_description(const string & item_name) const
 {
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  return m_item_database[item_name]->get_description();
+}
+
+vector<Stat_Modifier> World::get_equipment_stat_modifiers(const string & item_name, const long & slot) const
+{
+  vector<Stat_Modifier> stats{m_item_database[item_name]->get_stats()};
+  for(long i{0}; i < static_cast<long>(stats.size()); ++i)
   {
-    if(m_item_database[i]->get_name() == item_name)
+    stats[i].set_slot(slot);
+  }
+  return stats;
+}
+
+long World::get_equipment_add_modifier(const string & item_name, const string & stat_name) const
+{
+  vector<Stat_Modifier> stats{m_item_database[item_name]->get_stats()};
+  for(long i{0}; i < static_cast<long>(stats.size()); ++i)
+  {
+    if(stats[i].get_stat() == stat_name)
     {
-      return m_item_database[i]->get_description();
+      return stats[i].get_add_modifier();
     }
   }
-  crash("Error: Item \"" + item_name + "\" is not in the game.");
-  return "NULL";
+  return 0;
+}
+
+long World::get_equipment_replace_modifier(const string & item_name, const string & stat_name) const
+{
+  vector<Stat_Modifier> stats{m_item_database[item_name]->get_stats()};
+  for(long i{0}; i < static_cast<long>(stats.size()); ++i)
+  {
+    if(stats[i].get_stat() == stat_name)
+    {
+      return stats[i].get_replace_modifier();
+    }
+  }
+  return 0;
+}
+
+double World::get_equipment_multiply_modifier(const string & item_name, const string & stat_name) const
+{
+  vector<Stat_Modifier> stats{m_item_database[item_name]->get_stats()};
+  for(long i{0}; i < static_cast<long>(stats.size()); ++i)
+  {
+    if(stats[i].get_stat() == stat_name)
+    {
+      return stats[i].get_multiply_modifier();
+    }
+  }
+  return 1;
+}
+
+vector<string> World::get_equipment_usable_by(const string & item_name) const
+{
+  return m_item_database[item_name]->get_usable_by();
 }
 
 bool World::has_items() const
 {
-  return !m_items.empty();
+  return m_items.get_list_size() != 0;
 }
 
 bool World::has_item(const string & item) const
 {
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
-  {
-    if(m_items[i]->get_name() == item)
-    {
-      return true;
-    }
-  }
-  return false;
+  return m_items.is_in_list(item);
 }
 
 void World::add_item(const string & item)
 {
   //Does it already exist?
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
+  if(m_items.is_in_list(item) == true)
   {
-    if(m_items[i]->get_name() == item)
-    {
-      //Yes it does, increase the count and exit
-      m_items[i]->increment_count();
-      return;
-    }
+    m_items[item]->increment_count();
   }
-  //No it doesn't, add it to the list
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  else
   {
-    if(m_item_database[i]->get_type() == "Consumable Item" && m_item_database[i]->get_name() == item)
-    {
-      m_items.push_back(new Consumable_Item{*dynamic_cast<Consumable_Item*>(m_item_database[i])});
-      ++mem;
-    }
+    //No it doesn't, add it to the list
+    Consumable_Item* new_item{new Consumable_Item{m_item_database[item]->get_name(), m_item_database[item]->get_description()}};
+    m_items.add(new_item);
+    ++mem;
   }
 }
 
 void World::remove_item(const string & item)
 {
-  for(long i{0}; i < static_cast<long>(m_items.size()); ++i)
+  //Does it already exist?
+  if(m_items.is_in_list(item) == true)
   {
-    if(m_items[i]->get_name() == item)
+    m_items[item]->decrement_count();
+    // if you don't have any more, remove it
+    if(m_items[item]->get_count() == 0)
     {
-      if(m_items[i]->get_count() > 0)
-      {
-        m_items[i]->decrement_count();
-        if(m_items[i]->get_count() == 0)
-        {
-          // erase it
-          delete m_items[i];
-          m_items[i] = nullptr;
-          m_items.erase(m_items.begin() + i);
-          --mem;
-          return;
-        }
-      }
+      m_items.remove(item);
     }
   }
 }
 
 bool World::has_key_items() const
 {
-  return !m_key_items.empty();
+  return m_key_items.get_list_size() != 0;
 }
 
 bool World::has_key_item(const string & item) const
 {
-  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
-  {
-    if(m_key_items[i]->get_name() == item)
-    {
-      return true;
-    }
-  }
-  return false;
+  return m_key_items.is_in_list(item);
 }
 
 void World::add_key_item(const string & item)
 {
   //Does it already exist?
-  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
+  if(m_key_items.is_in_list(item) == false)
   {
-    if(m_key_items[i]->get_name() == item)
-    {
-      //Yes it does, exit
-      return;
-    }
-  }
-  //No it doesn't, add it to the list
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
-  {
-    if(m_item_database[i]->get_type() == "Key Item" && m_item_database[i]->get_name() == item)
-    {
-      m_key_items.push_back(new Key_Item{*dynamic_cast<Key_Item*>(m_item_database[i])});
-      ++mem;
-    }
+    //No it doesn't, add it to the list
+    Key_Item* new_item{new Key_Item{m_item_database[item]->get_name(), m_item_database[item]->get_description()}};
+    m_key_items.add(new_item);
+    ++mem;
   }
 }
 
 void World::remove_key_item(const string & item)
 {
-  for(long i{0}; i < static_cast<long>(m_key_items.size()); ++i)
+  //Does it already exist?
+  if(m_key_items.is_in_list(item) == true)
   {
-    if(m_key_items[i]->get_name() == item)
-    {
-      delete m_key_items[i];
-      m_key_items[i] = nullptr;
-      m_key_items.erase(m_key_items.begin() + i);
-      --mem;
-      return;
-    }
+    //Remove it
+    m_key_items.remove(item);
   }
 }
 
 bool World::has_weapons() const
 {
-  return !get_weapons().empty();
-}
-
-bool World::has_shields() const
-{
-  return !get_shields().empty();
-}
-
-bool World::has_helms() const
-{
-  return !get_helms().empty();
-}
-
-bool World::has_armor() const
-{
-  return !get_armor().empty();
-}
-
-bool World::has_accessories() const
-{
-  return !get_accessories().empty();
-}
-
-bool World::has_equipment(const string & item) const
-{
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
   {
-    if(m_equipment[i]->get_name() == item)
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Weapon")
     {
-      return true;
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
     }
+    ++i;
   }
-  for(long i{0}; i < static_cast<long>(m_party.get_equipped_equipment().size()); ++i)
+  if(m_party.has_equipped_weapons() == true || inventory_equipment.empty() == false)
   {
-    if(m_party.get_equipped_equipment().at(i)->get_name() == item)
-    {
-      return true;
-    }
+    return true;
   }
   return false;
 }
 
+bool World::has_shields() const
+{
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
+  {
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Shield")
+    {
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
+    }
+    ++i;
+  }
+  if(m_party.has_equipped_shields() == true || inventory_equipment.empty() == false)
+  {
+    return true;
+  }
+  return false;
+}
+
+bool World::has_helms() const
+{
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
+  {
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Helm")
+    {
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
+    }
+    ++i;
+  }
+  if(m_party.has_equipped_helms() == true || inventory_equipment.empty() == false)
+  {
+    return true;
+  }
+  return false;
+}
+
+bool World::has_armor() const
+{
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
+  {
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Armor")
+    {
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
+    }
+    ++i;
+  }
+  if(m_party.has_equipped_armor() == true || inventory_equipment.empty() == false)
+  {
+    return true;
+  }
+  return false;
+}
+
+bool World::has_accessories() const
+{
+  vector<string> inventory_equipment{m_equipment.get_list()};
+  long i{0};
+  while(i != static_cast<long>(inventory_equipment.size()))
+  {
+    if(m_equipment[inventory_equipment[i]]->get_type() != "Accessory")
+    {
+      inventory_equipment.erase(inventory_equipment.begin() + i);
+      i = -1;
+    }
+    ++i;
+  }
+  if(m_party.has_equipped_accessories() == true || inventory_equipment.empty() == false)
+  {
+    return true;
+  }
+  return false;
+}
+/*
+bool World::has_equipment(const string & item) const
+{
+    return m_items.get_list_size() != 0;
+}
+*/
 void World::add_equipment(const string & item)
 {
   //Does it already exist?
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  if(m_equipment.is_in_list(item) == true)
   {
-    if(m_equipment[i]->get_name() == item)
-    {
-      //Yes it does, increase the count and exit
-      m_equipment[i]->increment_count();
-      return;
-    }
+    m_equipment[item]->increment_count();
   }
-  //No it doesn't, add it to the list
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  else
   {
-    if((m_item_database[i]->get_type() == "Weapon" || m_item_database[i]->get_type() == "Shield" || m_item_database[i]->get_type() == "Helm" || m_item_database[i]->get_type() == "Armor" || m_item_database[i]->get_type() == "Accessory") && m_item_database[i]->get_name() == item)
-    {
-      m_equipment.push_back(new Equipment{*dynamic_cast<Equipment*>(m_item_database[i])});
-      ++mem;
-    }
+    //No it doesn't, add it to the list
+    Equipment* new_item{new Equipment{m_item_database[item]->get_name(), m_item_database[item]->get_type(), m_item_database[item]->get_description(), m_item_database[item]->get_icon(), m_item_database[item]->get_stats(), m_item_database[item]->get_usable_by()}};
+    m_equipment.add(new_item);
+    ++mem;
   }
 }
 
 void World::remove_equipment(const string & item)
 {
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  //Does it already exist?
+  if(m_equipment.is_in_list(item) == true)
   {
-    if(m_equipment[i]->get_name() == item)
+    m_equipment[item]->decrement_count();
+    // if you don't have any more, remove it
+    if(m_equipment[item]->get_count() == 0)
     {
-      if(m_equipment[i]->get_count() > 0)
-      {
-        m_equipment[i]->decrement_count();
-        if(m_equipment[i]->get_count() == 0)
-        {
-          // erase it
-          delete m_equipment[i];
-          m_equipment[i] = nullptr;
-          m_equipment.erase(m_equipment.begin() + i);
-          --mem;
-          return;
-        }
-      }
+      m_equipment.remove(item);
     }
   }
 }
@@ -2508,31 +2447,19 @@ void World::set_cursor_destination(const long & end_x, const long & end_y)
   m_cursor->set_destination(end_x, end_y);
 }
 
-long World::get_font_height(const long & font_no) const
+long World::get_font_height(const string & font_name) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  return m_fonts[font_no]->get_height();
+  return m_fonts[font_name]->get_height();
 }
 
-long World::get_word_width(const long & font_no, const string & text) const
+long World::get_word_width(const string & font_name, const string & text) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  return m_fonts[font_no]->get_word_width(text);
+  return m_fonts[font_name]->get_word_width(text);
 }
 
-long World::get_char_width(const long & font_no, const char & text) const
+long World::get_char_width(const string & font_name, const char & text) const
 {
-  if(font_no < 0 || font_no >= static_cast<long>(m_fonts.size()))
-  {
-    crash("Error: The game doesn't have " + to_string(font_no) + " fonts.");
-  }
-  return m_fonts[font_no]->get_char_width(text);
+  return m_fonts[font_name]->get_char_width(text);
 }
 
 void World::play_global_sound(const string & name) const
@@ -2546,6 +2473,62 @@ void World::play_global_sound(const string & name) const
     }
   }
   crash("Error: Global sound effect \"" + name + "\" doesn't exist.");
+}
+
+void World::play_global_music(const string & name)
+{
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
+  {
+    if(m_global_music_names[i] == m_music_playing)
+    {
+      StopMusicStream(m_global_music[i]);
+      m_music_playing = "NULL";
+    }
+  }
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
+  {
+    if(m_global_music_names[i] == name)
+    {
+      PlayMusicStream(m_global_music[i]);
+      m_music_playing = name;
+      return;
+    }
+  }
+  crash("Error: Global music \"" + name + "\" doesn't exist.");
+}
+
+void World::pause_play_global_music() const
+{
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
+  {
+    if(m_global_music_names[i] == m_music_playing)
+    {
+      if(IsMusicStreamPlaying(m_global_music[i]) == true)
+      {
+        PauseMusicStream(m_global_music[i]);
+      }
+      else
+      {
+        PlayMusicStream(m_global_music[i]);
+      }
+      return;
+    }
+  }
+  crash("Error: Global music \"" + m_music_playing + "\" doesn't exist.");
+}
+
+void World::stop_global_music()
+{
+  for(long i{0}; i < static_cast<long>(m_global_music.size()); ++i)
+  {
+    if(m_global_music_names[i] == m_music_playing)
+    {
+      StopMusicStream(m_global_music[i]);
+      m_music_playing = "NULL";
+      return;
+    }
+  }
+  crash("Error: Global music \"" + m_music_playing + "\" doesn't exist.");
 }
 
 string World::get_party_member_name(const long & index) const
@@ -2643,35 +2626,73 @@ void World::add_party_member(const Player_Info & player)
   m_party.add_party_member(player);
 }
 
-string World::get_equipment_type(const string & item_name) const
+string World::get_party_member_equipped_equipment(const string & party_member_name, const string & type, const long & slot) const
 {
-  for(long i{0}; i < static_cast<long>(m_equipment.size()); ++i)
+  if(type == "Accessory")
   {
-    if(item_name == m_equipment[i]->get_name())
+    if(slot == 0)
     {
-      return m_equipment[i]->get_type();
+      return m_party.get_member_equipped_equipment(party_member_name, "Accessory 1");
+    }
+    else if(slot == 1)
+    {
+      return m_party.get_member_equipped_equipment(party_member_name, "Accessory 2");
     }
   }
-  for(long i{0}; i < static_cast<long>(m_party.get_equipped_equipment().size()); ++i)
-  {
-    if(item_name == m_party.get_equipped_equipment().at(i)->get_name())
-    {
-      return m_party.get_equipped_equipment().at(i)->get_type();
-    }
-  }
-  crash("Error: \"" + item_name + "\" in not in the equipment list.");
-  return "NULL";
+  return m_party.get_member_equipped_equipment(party_member_name, type);
 }
 
-Equipment* World::get_equipment(const string & item_name) const
+vector<long> World::build_equipment_stat_differences(World* world, const string & item_name, const string & target_party_member_name, const long & target_slot, const string & source_party_member_name, const long & source_slot)
 {
-  for(long i{0}; i < static_cast<long>(m_item_database.size()); ++i)
+  vector<long> current_stats{}; // target party member's current stats
+  vector<long> new_stats{}; // target party member's new stats
+  vector<long> stat_differences{}; // target party member's stat differences between old equipment and highlighted equipment
+  vector<Equipment*> equipment_copy{};
+  vector<Equipment*> party_equipment_copy{m_party.get_equipped_equipment_including_nulls(world)};
+  m_party.back_up_party_stats();
+
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Strength"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Attack"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Speed"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Defense"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Intellect"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Resistance"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Stamina"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Accuracy"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Spirit"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Critical"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Evasion"));
+  current_stats.push_back(get_party_member_stat(target_party_member_name, "Magic Evasion"));
+
+  for(long i{0}; i < m_equipment.get_list_size(); ++i)
   {
-    if(item_name == m_item_database[i]->get_name())
-    {
-      return dynamic_cast<Equipment*>(m_item_database[i]);
-    }
+    equipment_copy.push_back(new Equipment{m_equipment[i]->get_name(), m_equipment[i]->get_type(), m_equipment[i]->get_description(), m_equipment[i]->get_icon(), m_equipment[i]->get_stats(), m_equipment[i]->get_usable_by(), m_equipment[i]->get_slot(), m_equipment[i]->get_equipped_by(), m_equipment[i]->get_count()});
+    ++mem;
   }
-  crash("Error: \"" + item_name + "\" in not in the game.");
-  return nullptr;
+
+  equip(world, item_name, target_party_member_name, target_slot, source_party_member_name, source_slot);
+
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Strength"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Attack"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Speed"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Defense"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Intellect"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Resistance"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Stamina"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Accuracy"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Spirit"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Critical"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Evasion"));
+  new_stats.push_back(get_party_member_stat(target_party_member_name, "Magic Evasion"));
+
+  m_equipment.add(equipment_copy);
+  m_party.restore_equipment(party_equipment_copy);
+  m_party.restore_party_stats();
+
+  for(long i{0}; i < static_cast<long>(new_stats.size()); ++i)
+  {
+    stat_differences.push_back(new_stats[i] - current_stats[i]);
+  }
+
+  return stat_differences;
 }

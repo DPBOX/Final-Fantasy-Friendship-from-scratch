@@ -127,7 +127,7 @@ void Title_State::update_input(World* world, State_Manager* state_manager)
 {
   if(IsKeyPressed(KEY_Z) == true)
   {
-    Game_State* e{new Explore_State(MAPS[0])};
+    Game_State* e{new Explore_State(world, MAPS[0])};
     ++mem;
     state_manager->pop_state();
     state_manager->set_next_state(e);
@@ -136,18 +136,18 @@ void Title_State::update_input(World* world, State_Manager* state_manager)
 
 void Title_State::render(World* world) const
 {
-  world->render_text_center(1, "Dungeon", SCREEN_HEIGHT / 4 - FONT_HEADING_HEIGHT / 2);
-  world->render_text_center(0, "Press Z!", SCREEN_HEIGHT * 3 / 4);
-  world->render_text_center(0, "(X is back.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT);
-  world->render_text_center(0, "(S is open and close the menu.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT * 2);
+  world->render_text_center("Heading", "Dungeon", SCREEN_HEIGHT / 4 - FONT_HEADING_HEIGHT / 2);
+  world->render_text_center("Text", "Press Z!", SCREEN_HEIGHT * 3 / 4);
+  world->render_text_center("Text", "(X is back.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT);
+  world->render_text_center("Text", "(S is open and close the menu.)", SCREEN_HEIGHT * 3 / 4 + FONT_TEXT_HEIGHT * 2);
 }
 
-Explore_State::Explore_State(const Map_Data & map_data, const Scr & start_script)
+Explore_State::Explore_State(World* world, const Map_Data & map_data, const Scr & start_script)
 {
   m_map_handler = new Map_Handler;
   ++mem;
   m_name = "Explore State";
-  m_map_handler->add_map(map_data, m_map_handler);
+  m_map_handler->add_map(world, map_data, m_map_handler);
   m_map_handler->add_script(start_script);
 }
 
@@ -181,6 +181,11 @@ void Explore_State::update_input(World* world, State_Manager* state_manager)
     state_manager->set_next_state(new Game_Over_State());
     ++mem;
   }
+  if(next_state == "Battle")
+  {
+    state_manager->set_next_state(new Game_Over_State());
+    ++mem;
+  }
 }
 
 void Explore_State::render(World* world) const
@@ -197,7 +202,7 @@ void Game_Over_State::update_input(World* world, State_Manager* state_manager){}
 
 void Game_Over_State::render(World* world) const
 {
-  world->render_text_center(1, "End of Demo", SCREEN_HEIGHT / 2 - FONT_HEADING_HEIGHT / 2);
+  world->render_text_center("Heading", "End of Demo", SCREEN_HEIGHT / 2 - FONT_HEADING_HEIGHT / 2);
 }
 
 Front_Menu_State::Front_Menu_State(World* world)

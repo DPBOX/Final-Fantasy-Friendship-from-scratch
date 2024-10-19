@@ -115,7 +115,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             {
               if(MAPS[j].m_id == get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name)
               {
-                map_handler->add_map(MAPS[j], map_handler);
+                map_handler->add_map(world, MAPS[j], map_handler);
               }
             }
             ++m_inner_index;
@@ -291,6 +291,12 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++m_inner_index;
             break;
 
+          case Script_Op::Battle_Transition:
+            instant = false;
+            m_tween_list.push_back(Tween_Data{"Battle Transition", "NULL", 1, 0, BATTLE_TRANSITION_FRAMES});
+            ++m_inner_index;
+            break;
+
           default:
             crash("Error: Invalid script command.");
             break;
@@ -425,6 +431,16 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++m_inner_index2;
           }
         }
+
+        else if(m_tween_list[i].m_function == "Battle Transition")
+        {
+          m_tween_list[i].m_position += m_tween_list[i].m_velocity;
+          if(m_tween_list[i].m_position >= m_tween_list[i].m_end)
+          {
+            m_tween_list[i].m_done = true;
+            ++m_inner_index2;
+          }
+        }
         
         else
         {
@@ -441,6 +457,20 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
 
 void Map_Handler::Script::render(World* world) const
 {
+  long index{-1};
+  for(long i{0}; i < static_cast<long>(m_tween_list.size()); ++i)
+  {
+    if(m_tween_list[i].m_function == "Battle Transition")
+    {
+      index = i;
+    }
+  }
+
+  if(index != -1)
+  {
+    DrawRectanglePro(Rectangle{SCREEN_WIDTH, SCREEN_HEIGHT, m_tween_list[index].m_position * 4, m_tween_list[index].m_position * 4}, Vector2{SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}, 0/*m_tween_list[index].m_position*/, Color{255, 255, 255, 255});
+  }
+
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
   {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{static_cast<unsigned char>(m_screen_list[i]->m_red), static_cast<unsigned char>(m_screen_list[i]->m_green), static_cast<unsigned char>(m_screen_list[i]->m_blue), static_cast<unsigned char>(m_screen_list[i]->m_alpha)});
@@ -467,7 +497,7 @@ long Map_Handler::Script::get_next_script() const
   return m_new_script;
 }
 
-Map_Handler::Script::Caption_Data::Caption_Data(const long & font, const string & id, const string & text, const long & y_pos, const long & alpha)
+Map_Handler::Script::Caption_Data::Caption_Data(const string & font, const string & id, const string & text, const long & y_pos, const long & alpha)
 {
   m_id = id;
   m_text = text;
