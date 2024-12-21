@@ -1,6 +1,40 @@
 #ifndef MEDIA_H
 #define MEDIA_H
 
+class Sound_Player
+{
+  public:
+    explicit Sound_Player();
+    Sound_Player(const Sound_Player & obj) = delete;
+    Sound_Player & operator =(const Sound_Player & obj) = delete;
+    virtual ~Sound_Player();
+
+    void play_global_sound(const string & name) const;
+  private:
+    vector<Sound> m_global_sounds{};
+    vector<string> m_global_sound_names{};
+};
+
+class Music_Player
+{
+  public:
+    explicit Music_Player();
+    Music_Player(const Music_Player & obj) = delete;
+    Music_Player & operator =(const Music_Player & obj) = delete;
+    virtual ~Music_Player();
+
+    void play_global_music(const string & name);
+    void pause_play_global_music() const;
+    void stop_global_music();
+    void update_music();
+    void terminate_music();
+  private:
+    vector<Music> m_global_music{};
+    vector<string> m_global_music_names{};
+    string m_music_playing{"NULL"};
+    bool m_terminate_music{false};
+};
+
 struct Music_Params
 {
   explicit Music_Params(){}
@@ -75,25 +109,7 @@ extern const unsigned char _binary_Image_text_font_gallus_png_end[];
 
 extern const unsigned char _binary_Image_heading_font_png_start[];
 extern const unsigned char _binary_Image_heading_font_png_end[];
-/*
-extern const unsigned char binary_Image_hero_png_start[];
-extern const unsigned char binary_Image_hero_png_end[];
 
-extern const unsigned char binary_Image_guard_png_start[];
-extern const unsigned char binary_Image_guard_png_end[];
-
-extern const unsigned char binary_Image_rpg_indoor_png_start[];
-extern const unsigned char binary_Image_rpg_indoor_png_end[];
-
-extern const unsigned char binary_Image_tileset_sontos_house_png_start[];
-extern const unsigned char binary_Image_tileset_sontos_house_png_end[];
-
-extern const unsigned char binary_Image_tileset_jail_png_start[];
-extern const unsigned char binary_Image_tileset_jail_png_end[];
-
-extern const unsigned char binary_Image_sleeping_effect_png_start[];
-extern const unsigned char binary_Image_sleeping_effect_png_end[];
-*/
 extern const unsigned char _binary_Image_inventory_icons_png_start[];
 extern const unsigned char _binary_Image_inventory_icons_png_end[];
 
@@ -141,46 +157,7 @@ extern const unsigned char _binary_Image_entrance_png_end[];
 
 extern const unsigned char _binary_Image_battle_testing_png_start[];
 extern const unsigned char _binary_Image_battle_testing_png_end[];
-/*
-extern const unsigned char binary_Music_rain_mp3_start[];
-extern const unsigned char binary_Music_rain_mp3_end[];
 
-extern const unsigned char binary_Music_wagon_mp3_start[];
-extern const unsigned char binary_Music_wagon_mp3_end[];
-
-extern const unsigned char binary_Music_wind_mp3_start[];
-extern const unsigned char binary_Music_wind_mp3_end[];
-
-extern const unsigned char binary_Music_city_mp3_start[];
-extern const unsigned char binary_Music_city_mp3_end[];
-
-extern const unsigned char binary_Sound_door_break_wav_start[];
-extern const unsigned char binary_Sound_door_break_wav_end[];
-
-extern const unsigned char binary_Sound_bell_wav_start[];
-extern const unsigned char binary_Sound_bell_wav_end[];
-
-extern const unsigned char binary_Image_gregor_png_start[];
-extern const unsigned char binary_Image_gregor_png_end[];
-
-extern const unsigned char binary_Sound_crumble_wav_start[];
-extern const unsigned char binary_Sound_crumble_wav_end[];
-
-extern const unsigned char binary_Sound_key_item_wav_start[];
-extern const unsigned char binary_Sound_key_item_wav_end[];
-
-extern const unsigned char binary_Sound_skeleton_wav_start[];
-extern const unsigned char binary_Sound_skeleton_wav_end[];
-
-extern const unsigned char binary_Sound_reveal_wav_start[];
-extern const unsigned char binary_Sound_reveal_wav_end[];
-
-extern const unsigned char binary_Sound_grate_wav_start[];
-extern const unsigned char binary_Sound_grate_wav_end[];
-
-extern const unsigned char binary_Sound_unlock_wav_start[];
-extern const unsigned char binary_Sound_unlock_wav_end[];
-*/
 extern const unsigned char _binary_Sound_cursor_wav_start[];
 extern const unsigned char _binary_Sound_cursor_wav_end[];
 
@@ -243,25 +220,7 @@ extern const unsigned char binary_Image_text_font_gallus_png_end[];
 
 extern const unsigned char binary_Image_heading_font_png_start[];
 extern const unsigned char binary_Image_heading_font_png_end[];
-/*
-extern const unsigned char binary_Image_hero_png_start[];
-extern const unsigned char binary_Image_hero_png_end[];
 
-extern const unsigned char binary_Image_guard_png_start[];
-extern const unsigned char binary_Image_guard_png_end[];
-
-extern const unsigned char binary_Image_rpg_indoor_png_start[];
-extern const unsigned char binary_Image_rpg_indoor_png_end[];
-
-extern const unsigned char binary_Image_tileset_sontos_house_png_start[];
-extern const unsigned char binary_Image_tileset_sontos_house_png_end[];
-
-extern const unsigned char binary_Image_tileset_jail_png_start[];
-extern const unsigned char binary_Image_tileset_jail_png_end[];
-
-extern const unsigned char binary_Image_sleeping_effect_png_start[];
-extern const unsigned char binary_Image_sleeping_effect_png_end[];
-*/
 extern const unsigned char binary_Image_inventory_icons_png_start[];
 extern const unsigned char binary_Image_inventory_icons_png_end[];
 
@@ -309,46 +268,7 @@ extern const unsigned char binary_Image_entrance_png_end[];
 
 extern const unsigned char binary_Image_battle_testing_png_start[];
 extern const unsigned char binary_Image_battle_testing_png_end[];
-/*
-extern const unsigned char binary_Music_rain_mp3_start[];
-extern const unsigned char binary_Music_rain_mp3_end[];
 
-extern const unsigned char binary_Music_wagon_mp3_start[];
-extern const unsigned char binary_Music_wagon_mp3_end[];
-
-extern const unsigned char binary_Music_wind_mp3_start[];
-extern const unsigned char binary_Music_wind_mp3_end[];
-
-extern const unsigned char binary_Music_city_mp3_start[];
-extern const unsigned char binary_Music_city_mp3_end[];
-
-extern const unsigned char binary_Sound_door_break_wav_start[];
-extern const unsigned char binary_Sound_door_break_wav_end[];
-
-extern const unsigned char binary_Sound_bell_wav_start[];
-extern const unsigned char binary_Sound_bell_wav_end[];
-
-extern const unsigned char binary_Image_gregor_png_start[];
-extern const unsigned char binary_Image_gregor_png_end[];
-
-extern const unsigned char binary_Sound_crumble_wav_start[];
-extern const unsigned char binary_Sound_crumble_wav_end[];
-
-extern const unsigned char binary_Sound_key_item_wav_start[];
-extern const unsigned char binary_Sound_key_item_wav_end[];
-
-extern const unsigned char binary_Sound_skeleton_wav_start[];
-extern const unsigned char binary_Sound_skeleton_wav_end[];
-
-extern const unsigned char binary_Sound_reveal_wav_start[];
-extern const unsigned char binary_Sound_reveal_wav_end[];
-
-extern const unsigned char binary_Sound_grate_wav_start[];
-extern const unsigned char binary_Sound_grate_wav_end[];
-
-extern const unsigned char binary_Sound_unlock_wav_start[];
-extern const unsigned char binary_Sound_unlock_wav_end[];
-*/
 extern const unsigned char binary_Sound_cursor_wav_start[];
 extern const unsigned char binary_Sound_cursor_wav_end[];
 

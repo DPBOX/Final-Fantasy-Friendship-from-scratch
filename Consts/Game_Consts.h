@@ -77,7 +77,7 @@ const long FRONT_MENU_SPLIT{4};
 const long NUM_FRONT_MENU_CHOICES{5};
 const vector<string> FRONT_MENU_CHOICES{"Items", "Magic", "Status and Equipment", "Formation", "Save"};
 
-const long NUM_ITEM_MENU_CHOICES{3};
+const long NUM_ITEM_MENU_CHOICES{2};
 const long ITEM_MENU_SPLIT{3};
 const vector<string> ITEM_MENU_CHOICES{"Items", "Key Items"};
 const double ITEM_QUANTITY_LOCATION_FRACTION{.75};

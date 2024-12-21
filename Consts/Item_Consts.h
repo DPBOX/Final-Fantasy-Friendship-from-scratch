@@ -3,7 +3,7 @@
 
 m_item_database.add(vector<Item*>
 {
-  new Equipment{"Twilight Steel", "Weapon", "Tempest Shadow's initial weapon.", 0, vector<Stat_Modifier>{Stat_Modifier{"Twilight Steel Attack", "Attack", 38, true}, Stat_Modifier{"Twilight Steel Accuracy", "Accuracy", 150, true}, Stat_Modifier{"Twilight Steel Critical", "Critical", 7, false}}, vector<string>{"Tempest"}},
+  new Equipment{"Twilight Steel", "Weapon", "Tempest's 1st weapon.", 0, vector<Stat_Modifier>{Stat_Modifier{"Twilight Steel Attack", "Attack", 38, true}, Stat_Modifier{"Twilight Steel Accuracy", "Accuracy", 150, true}, Stat_Modifier{"Twilight Steel Critical", "Critical", 7, false}}, vector<string>{"Tempest"}},
   new Equipment{"Mythril Sword", "Weapon", "A sword made of mythril for Tempest.", 0, vector<Stat_Modifier>{Stat_Modifier{"Mythril Sword Attack", "Attack", 48, true}, Stat_Modifier{"Mythril Sword Accuracy", "Accuracy", 200, true}, Stat_Modifier{"Mythril Sword Critical", "Critical", 2.0}}, vector<string>{"Tempest"}},
   new Equipment{"Seashell Sword", "Weapon", "A sword decorated with seashells for Tempest.", 0, vector<Stat_Modifier>{Stat_Modifier{"Seashell Sword Attack", "Attack", 58, true}, Stat_Modifier{"Seashell Sword Accuracy", "Accuracy", 170, true}, Stat_Modifier{"Seashell Sword Critical", "Critical", 10, false}}, vector<string>{"Tempest"}},
   new Equipment{"Lunar Dagger", "Weapon", "An initial weapon for Nightwish.", 1, vector<Stat_Modifier>{Stat_Modifier{"Lunar Dagger Attack", "Attack", 20, true}, Stat_Modifier{"Lunar Dagger Accuracy", "Accuracy", 120, true}, Stat_Modifier{"Lunar Dagger Critical", "Critical", 5, false}}, vector<string>{"Nightwish"}},
@@ -28,7 +28,7 @@ m_item_database.add(vector<Item*>
   new Equipment{"White Cape", "Accessory", "Blocks Mini and Moogle status conditions.", 16, vector<Stat_Modifier>{Stat_Modifier{"White Cape Defense", "Defense", 5, false}, Stat_Modifier{"White Cape Resistance", "Resistance", 5, false}}},
   new Equipment{"Power Band", "Accessory", "A band that makes you stronger.", 16, vector<Stat_Modifier>{Stat_Modifier{"Power Band Strength", "Strength", 10, false}}},
   new Equipment{"Muscle Belt", "Accessory", "A belt that makes you stronger.", 16, vector<Stat_Modifier>{Stat_Modifier{"Muscle Belt Strength", "Strength", 1.25}, Stat_Modifier{"Muscle Belt Stamina", "Stamina", 15, false}}},
-  new Equipment{"Crystal Ball", "Accessory", "It sharply boosts your vitality.", 16, vector<Stat_Modifier>{Stat_Modifier{"Crystal Ball HP", "Max HP", 2.0}}},
+  new Equipment{"Crystal Ball", "Accessory", "It sharply boosts your magic power.", 16, vector<Stat_Modifier>{Stat_Modifier{"Crystal Ball MP", "Max MP", 2.0}}},
   new Equipment{"Zephyr Cloak", "Accessory", "A cloak that makes it easier for you to dodge attacks.", 16, vector<Stat_Modifier>{Stat_Modifier{"Zephyr Cloak Evasion", "Evasion", 1.1}, Stat_Modifier{"Zephyr Cloak Magic Evasion", "Magic Evasion", 1.1}}},
   new Consumable_Item{"Heal Potion", "Heals a little HP."},
   new Consumable_Item{"Money Bag", "Gives 50 Bits."},
