@@ -14,6 +14,18 @@ long count_words(const string & text)
   return count + 1;
 }
 
+long get_text_font_word_width(string word)
+{
+  long current_pos{0};
+
+  while(word != "")
+  {
+    current_pos += FONT_TEXT_CHAR_WIDTHS[word[0]];
+    word.erase(word.begin());
+  }
+  return current_pos;
+}
+
 void crash(const string & message)
 {
   Fnt* font{new Fnt};

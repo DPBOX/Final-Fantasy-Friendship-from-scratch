@@ -4,6 +4,7 @@
 class Player_Summary;
 
 long count_words(const string & text);
+long get_text_font_word_width(string word);
 
 template <typename T = string>
 vector<T*> to_pointers(const vector<T> & vec)
@@ -113,14 +114,9 @@ class List
     {
       return m_list.size();
     }
-    vector<string> get_list() const
+    vector<T*> get_list() const
     {
-      vector<string> output{};
-      for(long i{0}; i < get_list_size(); ++i)
-      {
-        output.push_back(m_list[i]->get_name());
-      }
-      return output;
+      return m_list;
     }
     bool is_in_list(const string & t) const
     {
@@ -268,14 +264,9 @@ class List<string>
     {
       return m_list.size();
     }
-    vector<string> get_list() const
+    vector<string*> get_list() const
     {
-      vector<string> output{};
-      for(long i{0}; i < get_list_size(); ++i)
-      {
-        output.push_back(*m_list[i]);
-      }
-      return output;
+      return m_list;
     }
     bool is_in_list(const string & t) const
     {

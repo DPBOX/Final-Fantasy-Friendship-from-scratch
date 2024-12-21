@@ -28,7 +28,7 @@ Map_Handler::~Map_Handler()
   }
 }
 
-void Map_Handler::add_map(World* world, const Map_Data & map_data, Map_Handler* map_handler)
+void Map_Handler::add_map(Music_Player* music_player, const Map_Data & map_data, Map_Handler* map_handler)
 {
   if(m_map != nullptr)
   {
@@ -51,7 +51,7 @@ void Map_Handler::add_map(World* world, const Map_Data & map_data, Map_Handler* 
   m_entity_list.clear();
   m_trigger_list.clear();
   m_script_list = map_data.m_scripts;
-  m_map = new Tilemap(world, map_data);
+  m_map = new Tilemap(music_player, map_data);
   ++mem;
 
   Entity* hero{nullptr};
@@ -131,11 +131,11 @@ void Map_Handler::add_script(const Scr & events)
   }
 }
 
-void Map_Handler::update_input(Map_Handler* map_handler, World* world)
+void Map_Handler::update_input(Map_Handler* map_handler, Music_Player* music_player, World* world)
 {
   if(m_script != nullptr)
   {
-    m_script->update_input(map_handler, world);
+    m_script->update_input(map_handler, music_player, world);
     if(m_script->finished() == true)
     {
       long next_script{m_script->get_next_script()};
@@ -197,7 +197,7 @@ void Map_Handler::update_input(Map_Handler* map_handler, World* world)
   }
 }
 
-void Map_Handler::render(Map_Handler* map_handler, World* world) const
+void Map_Handler::render(const Map_Handler* const map_handler, const World* const world) const
 {
   m_map->render(map_handler);
   if(m_script != nullptr)
@@ -206,7 +206,7 @@ void Map_Handler::render(Map_Handler* map_handler, World* world) const
   }
 }
 
-void Map_Handler::render_layers_entities(Map_Handler* map_handler, const long & layer) const
+void Map_Handler::render_layers_entities(const Map_Handler* const map_handler, const long & layer) const
 {
   for(long m{0}; m < static_cast<long>(m_entity_list.size()); ++m)
   {
@@ -535,7 +535,7 @@ void Map_Handler::turn_entity(const long & entity_index, const Direction & direc
   }
 }
 
-Map_Handler::Tilemap::Tilemap(World* world, const Map_Data & map_data)
+Map_Handler::Tilemap::Tilemap(Music_Player* music_player, const Map_Data & map_data)
 {
   m_map_width = map_data.m_map_width;
   m_map_height = map_data.m_map_height;
@@ -547,7 +547,7 @@ Map_Handler::Tilemap::Tilemap(World* world, const Map_Data & map_data)
   Image image{LoadImageFromMemory(".png", map_data.m_img_data, map_data.m_img_size)};
   m_tiles = LoadTextureFromImage(image);
   UnloadImage(image);
-  world->play_global_music(m_music);
+  music_player->play_global_music(m_music);
 }
 
 Map_Handler::Tilemap::~Tilemap()
@@ -555,7 +555,7 @@ Map_Handler::Tilemap::~Tilemap()
   UnloadTexture(m_tiles);
 }
 
-void Map_Handler::Tilemap::render(Map_Handler* map_handler) const
+void Map_Handler::Tilemap::render(const Map_Handler* const map_handler) const
 {
   long top_left_x = point_to_tile_x(m_cam_x, m_cam_y);
   long top_left_y = point_to_tile_y(m_cam_x, m_cam_y);

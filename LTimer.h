@@ -14,7 +14,7 @@ class LTimer
     void unpause();
 
     //Gets the timer's time
-    long get_ticks() const;
+    double get_ticks() const;
 
     //Checks the status of the timer
     bool is_started() const;

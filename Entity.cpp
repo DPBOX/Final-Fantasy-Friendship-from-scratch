@@ -20,7 +20,7 @@ long Map_Handler::Entity::tile_occupied(const long & x, const long & y, const lo
   return m_alpha != 0 && m_tile_x == x && m_tile_y == y && m_layer == layer;
 }
 
-void Map_Handler::Entity::render(Map_Handler* map_handler) const
+void Map_Handler::Entity::render(const Map_Handler* const map_handler) const
 {
   DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_animation.get_frame() * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
 }
@@ -57,7 +57,7 @@ void Map_Handler::Treasure_Chest::turn(const Direction & direction)
   m_opened = true;
 }
 
-void Map_Handler::Treasure_Chest::render(Map_Handler* map_handler) const
+void Map_Handler::Treasure_Chest::render(const Map_Handler* const map_handler) const
 {
   DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_opened * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
 }
@@ -525,15 +525,6 @@ void Map_Handler::NPC::update_input(Map_Handler* map_handler)
   }
 }
 
-void Map_Handler::NPC::render(Map_Handler* map_handler) const
-{
-  DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_animation.get_frame() * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
-  if(m_show_effect == true)
-  {
-    DrawTexturePro(m_effect_img, Rectangle{static_cast<float>(m_effect_animation.get_frame() * m_effect_width), 0, static_cast<float>(m_effect_width), static_cast<float>(m_effect_img.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() + m_effect_offset_x - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() + m_effect_offset_y - m_frames.height), static_cast<float>(m_effect_width), static_cast<float>(m_effect_img.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
-  }
-}
-
 Map_Handler::NPC::~NPC()
 {
   UnloadTexture(m_effect_img);
@@ -565,6 +556,15 @@ void Map_Handler::NPC::enter()
   m_end_y = 0;
   m_vx = 0;
   m_vy = 0;
+}
+
+void Map_Handler::NPC::render(const Map_Handler* const map_handler) const
+{
+  DrawTexturePro(m_frames, Rectangle{static_cast<float>(m_animation.get_frame() * m_width), 0, static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() - m_frames.height), static_cast<float>(m_width), static_cast<float>(m_frames.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_alpha)});
+  if(m_show_effect == true)
+  {
+    DrawTexturePro(m_effect_img, Rectangle{static_cast<float>(m_effect_animation.get_frame() * m_effect_width), 0, static_cast<float>(m_effect_width), static_cast<float>(m_effect_img.height)}, Rectangle{static_cast<float>(m_x - map_handler->get_cam_x() + m_effect_offset_x - m_width / 2), static_cast<float>(m_y - map_handler->get_cam_y() + m_effect_offset_y - m_frames.height), static_cast<float>(m_effect_width), static_cast<float>(m_effect_img.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, 0xFF});
+  }
 }
 
 Map_Handler::Standing_NPC::Standing_NPC(Map_Handler* map_handler, const NPC_Data & npc_data)

@@ -2,6 +2,7 @@
 #define TILEMAP_H
 
 #include "Game_State.h"
+#include "UI.h"
 
 class Map_Handler
 {
@@ -11,10 +12,10 @@ class Map_Handler
     Map_Handler & operator =(const Map_Handler & obj) = delete;
     ~Map_Handler();
 
-    void add_map(World* world, const Map_Data & map_data, Map_Handler* map_handler);
+    void add_map(Music_Player* music_player, const Map_Data & map_data, Map_Handler* map_handler);
     void add_script(const Scr & events);
-    void update_input(Map_Handler* map_handler, World* world);
-    void render(Map_Handler* map_handler, World* world) const;
+    void update_input(Map_Handler* map_handler, Music_Player* music_player, World* world);
+    void render(const Map_Handler* const map_handler, const World* const world) const;
     
     string get_next_game_state();
     bool get_pop();
@@ -43,13 +44,12 @@ class Map_Handler
     {
       private:
         friend class Map_Handler;
-        explicit Tilemap(World* world, const Map_Data & map_data);
+        explicit Tilemap(Music_Player* music_player, const Map_Data & map_data);
         Tilemap(const Tilemap & obj) = delete;
         Tilemap & operator =(const Tilemap & obj) = delete;
         ~Tilemap();
 
-        void render(Map_Handler* map_handler) const;
-
+        void render(const Map_Handler* const map_handler) const;
         long point_to_tile_x(long x, long y) const;
         long point_to_tile_y(long x, long y) const;
         long get_tile(const long & x, const long & y, const long & layer, const long & sublayer) const;
@@ -83,8 +83,8 @@ class Map_Handler
         ~Script();
 
         void update(){}
-        void update_input(Map_Handler* map_handler, World* world);
-        void render(World* world) const;
+        void update_input(Map_Handler* map_handler, Music_Player* music_player, World* world);
+        void render(const World* const world) const;
         bool finished() const;
         long get_next_script() const;
 
@@ -112,15 +112,15 @@ class Map_Handler
         };
         struct Caption_Data
         {
-          explicit Caption_Data(const string & font, const string & id, const string & text, const long & y_pos, const long & alpha = 0);
+          explicit Caption_Data(const string & font_name, const string & id, const string & text, const long & y_pos, const long & alpha = 0);
           Caption_Data(const Caption_Data & obj) = delete;
           Caption_Data & operator =(const Caption_Data & obj) = delete;
           ~Caption_Data(){}
+          string m_font{"Text"};
           string m_id{"NULL"};
           string m_text{"NULL"};
           long m_y_pos{0};
           long m_alpha{0};
-          string m_font{0};
         };
 
         Scr m_events{};
@@ -154,7 +154,7 @@ class Map_Handler
         virtual bool path_finished() const;
 
         virtual void update_input(Map_Handler* map_handler) = 0;
-        virtual void render(Map_Handler* map_handler) const;
+        virtual void render(const Map_Handler* const map_handler) const;
 
         //The width in pixels of the Entity
         long m_width{1};
@@ -195,8 +195,8 @@ class Map_Handler
         Treasure_Chest & operator =(const Treasure_Chest & obj) = delete;
         virtual ~Treasure_Chest(){}
         virtual void update_input(Map_Handler* map_handler);
-        virtual void render(Map_Handler* map_handler) const;
         virtual void turn(const Direction & direction);
+        virtual void render(const Map_Handler* const map_handler) const;
 
         bool m_opened{false};
     };
@@ -251,7 +251,7 @@ class Map_Handler
         virtual ~NPC();
 
         virtual void update_input(Map_Handler* map_handler);
-        virtual void render(Map_Handler* map_handler) const;
+        virtual void render(const Map_Handler* const map_handler) const;
 
         virtual void enter();
         virtual void stand_update(Map_Handler* map_handler) = 0;
@@ -334,8 +334,8 @@ class Map_Handler
     vector<Trigger*> m_trigger_list{};
     vector<Entity*> m_entity_list{};
     vector<Scr> m_script_list{};
-    
-    void render_layers_entities(Map_Handler* map_handler, const long & layer) const;
+
+    void render_layers_entities(const Map_Handler* const map_handler, const long & layer) const;
     bool is_blocked(const long & x, const long & y, const long & layer) const;
     void show_npc(const string & npc_id);
     void hide_npc(const string & npc_id);

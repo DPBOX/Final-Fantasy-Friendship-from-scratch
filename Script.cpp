@@ -29,7 +29,7 @@ Map_Handler::Script::~Script()
   m_caption_list.clear();
 }
 
-void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
+void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* music_player, World* world)
 {
   if(m_textbox != nullptr)
   {
@@ -115,7 +115,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             {
               if(MAPS[j].m_id == get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name)
               {
-                map_handler->add_map(world, MAPS[j], map_handler);
+                map_handler->add_map(music_player, MAPS[j], map_handler);
               }
             }
             ++m_inner_index;
@@ -133,13 +133,13 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             ++m_inner_index;
             ++m_inner_index2;
             break;
-        
+
           case Script_Op::Remove_Key_Item:
             world->remove_key_item(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
             ++m_inner_index2;
             break;
-        
+
           case Script_Op::Has_Key_Item:
             if(world->has_key_item(get<Has_Key_Item_Params>(m_events[m_outer_index][m_inner_index]).m_item_name) == true)
             {
@@ -184,7 +184,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             break;
             
           case Script_Op::Join_Party:
-            world->add_party_member(*(get<Party_Params>(m_events[m_outer_index][m_inner_index]).m_member));
+            world->add_party_member(get<Party_Params>(m_events[m_outer_index][m_inner_index]).m_member);
             ++m_inner_index;
             ++m_inner_index2;
             break;
@@ -249,7 +249,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted(map_handler->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, world);
+            m_textbox->create_fitted(map_handler->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset);
             ++m_inner_index;
             break;
 
@@ -267,7 +267,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
             m_textbox->add_title(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name);
             m_textbox->add_portrait(TEMPEST_SMALL_PORTRAIT_IMAGE);
-            m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4, world);
+            m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4);
             ++m_inner_index;
             break;
         
@@ -279,7 +279,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted_choices(map_handler->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices, world);
+            m_textbox->create_fitted_choices(map_handler->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices);
             ++m_inner_index;
             break;
 
@@ -455,7 +455,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, World* world)
   }
 }
 
-void Map_Handler::Script::render(World* world) const
+void Map_Handler::Script::render(const World* const world) const
 {
   long index{-1};
   for(long i{0}; i < static_cast<long>(m_tween_list.size()); ++i)
@@ -468,14 +468,14 @@ void Map_Handler::Script::render(World* world) const
 
   if(index != -1)
   {
-    DrawRectanglePro(Rectangle{SCREEN_WIDTH, SCREEN_HEIGHT, m_tween_list[index].m_position * 4, m_tween_list[index].m_position * 4}, Vector2{SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}, 0/*m_tween_list[index].m_position*/, Color{255, 255, 255, 255});
+    DrawRectanglePro(Rectangle{SCREEN_WIDTH, SCREEN_HEIGHT, static_cast<float>(m_tween_list[index].m_position) * 4, static_cast<float>(m_tween_list[index].m_position) * 4}, Vector2{SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}, 0/*static_cast<float>(m_tween_list[index].m_position)*/, Color{255, 255, 255, 255});
   }
 
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
   {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{static_cast<unsigned char>(m_screen_list[i]->m_red), static_cast<unsigned char>(m_screen_list[i]->m_green), static_cast<unsigned char>(m_screen_list[i]->m_blue), static_cast<unsigned char>(m_screen_list[i]->m_alpha)});
   }
-  
+
   if(m_textbox != nullptr)
   {
     m_textbox->render(world);
@@ -497,11 +497,11 @@ long Map_Handler::Script::get_next_script() const
   return m_new_script;
 }
 
-Map_Handler::Script::Caption_Data::Caption_Data(const string & font, const string & id, const string & text, const long & y_pos, const long & alpha)
+Map_Handler::Script::Caption_Data::Caption_Data(const string & font_name, const string & id, const string & text, const long & y_pos, const long & alpha)
 {
+  m_font = font_name;
   m_id = id;
   m_text = text;
   m_y_pos = y_pos;
   m_alpha = alpha;
-  m_font = font;
 }

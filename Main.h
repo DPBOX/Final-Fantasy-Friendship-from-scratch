@@ -12,22 +12,19 @@ using namespace std;
 #include <variant>
 #include <array>
 #include <cstdint>
+#include <thread>
+#include <any>
 
 //Screen dimension constants
 const long SCREEN_WIDTH{480};
 const long SCREEN_HEIGHT{320};
 const long SCREEN_FPS{60};
+const double FRAME_LENGTH_IN_SECONDS{1 / static_cast<double>(SCREEN_FPS)};
 
 //Analog joystick dead zone
 //const long JOYSTICK_DEAD_ZONE{8000};
 
 const string WINDOW_TEXT = "RPG";
-
-//sound settings
-//const long SOUND_FREQUENCY{44100};
-//const long NUM_HARDWARE_CHANNELS{2}; // Stereo
-//const long SAMPLE_SIZE{2048};
-//const long NUM_MIX_CHANNELS{16};
 
 extern long mem;
 
@@ -37,5 +34,7 @@ extern long mem;
 #include "Script_Structs.h"
 #include "Consts/Storyboard_Consts.h"
 #include "Consts/Map_Consts.h"
+
+extern const Sound_Player* g_sound_player;
 
 #endif

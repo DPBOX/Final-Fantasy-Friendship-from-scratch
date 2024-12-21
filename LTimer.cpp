@@ -37,7 +37,7 @@ void LTimer::unpause()
   }
 }
 
-long LTimer::get_ticks() const
+double LTimer::get_ticks() const
 {
   double time = 0;
   if(m_started == true)
@@ -51,7 +51,7 @@ long LTimer::get_ticks() const
       time = GetTime() - m_start_ticks;
     }
   }
-  return static_cast<long>(time);
+  return time;
 }
 
 bool LTimer::is_started() const
