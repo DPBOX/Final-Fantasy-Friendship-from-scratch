@@ -26,17 +26,33 @@ long get_text_font_word_width(string word)
   return current_pos;
 }
 
+long speed_to_time_points(const long & speed)
+{
+  return MAX_SPEED - min(speed, MAX_SPEED);
+}
+
 void crash(const string & message)
 {
   Fnt* font{new Fnt};
-  ++mem;
-  while(WindowShouldClose() == false)   // Detect window close button or ESC key
+  if(WindowShouldClose() == true)
   {
     BeginDrawing();
     ClearBackground(Color{0x00, 0x00, 0x00, 0xFF});
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{0, 0, 0, 255});
     font->render_text_center(message, SCREEN_HEIGHT / 2 - font->get_height() / 2, 255);
     EndDrawing();
+    WaitTime(5);
+  }
+  else
+  {
+    while(WindowShouldClose() == false)   // Detect window close button or ESC key
+    {
+      BeginDrawing();
+      ClearBackground(Color{0x00, 0x00, 0x00, 0xFF});
+      DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{0, 0, 0, 255});
+      font->render_text_center(message, SCREEN_HEIGHT / 2 - font->get_height() / 2, 255);
+      EndDrawing();
+    }
   }
   exit(1);
 }

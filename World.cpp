@@ -1,5 +1,7 @@
 #include "Main.h"
 #include "World.h"
+#include "UI.h"
+#include "Cursor.h"
 
 void Stats::set_hp(const long & HP)
 {
@@ -76,57 +78,21 @@ long Stats::get_unmodified_stat(const string & stat) const
   {
     return m_mp_max;
   }
-  else if(stat == "Level")
-  {
-    return m_level;
-  }
-  else if(stat == "Strength")
-  {
-    return m_strength;
-  }
   else if(stat == "Attack")
   {
     return m_attack;
   }
   else if(stat == "Speed")
   {
-    return 0;
+    return m_speed;
   }
   else if(stat == "Defense")
   {
     return m_defense;
   }
-  else if(stat == "Intellect")
+  else if(stat == "Magic")
   {
-    return m_intellect;
-  }
-  else if(stat == "Resistance")
-  {
-    return m_resistance;
-  }
-  else if(stat == "Stamina")
-  {
-    return m_stamina;
-  }
-  else if(stat == "Accuracy")
-  {
-    return m_accuracy;
-  }
-  else if(stat == "Spirit")
-  {
-    return m_spirit;
-  }
-  else if(stat == "Critical")
-  {
-    return m_critical;
-  }
-  else if(stat == "Evasion")
-  {
-    return m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    return m_magic_evasion;
+    return m_magic;
   }
   else
   {
@@ -149,53 +115,21 @@ long Stats::get_stat(const string & stat) const
   {
     unmodified_stat = m_mp_max;
   }
-  else if(stat == "Strength")
-  {
-    unmodified_stat = m_strength;
-  }
   else if(stat == "Attack")
   {
     unmodified_stat = m_attack;
   }
   else if(stat == "Speed")
   {
-    unmodified_stat = 0;
+    unmodified_stat = m_speed;
   }
   else if(stat == "Defense")
   {
     unmodified_stat = m_defense;
   }
-  else if(stat == "Intellect")
+  else if(stat == "Magic")
   {
-    unmodified_stat = m_intellect;
-  }
-  else if(stat == "Resistance")
-  {
-    unmodified_stat = m_resistance;
-  }
-  else if(stat == "Stamina")
-  {
-    unmodified_stat = m_stamina;
-  }
-  else if(stat == "Accuracy")
-  {
-    unmodified_stat = m_accuracy;
-  }
-  else if(stat == "Spirit")
-  {
-    unmodified_stat = m_spirit;
-  }
-  else if(stat == "Critical")
-  {
-    unmodified_stat = m_critical;
-  }
-  else if(stat == "Evasion")
-  {
-    unmodified_stat = m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    unmodified_stat = m_magic_evasion;
+    unmodified_stat = m_magic;
   }
   else
   {
@@ -242,19 +176,12 @@ Player_Stats::Player_Stats(const Character_Base_Stats & stats, const long & leve
   m_base_hp = stats.m_base_hp;
   m_base_mp = stats.m_base_mp;
   m_defense = stats.m_defense;
-  m_resistance = stats.m_resistance;
-  m_evasion = stats.m_evasion;
-  m_magic_evasion = stats.m_magic_evasion;
-  m_critical = stats.m_critical;
-  m_spirit_growth = stats.m_spirit_growth;
-  m_stamina_growth = stats.m_stamina_growth;
-  m_strength_growth = stats.m_strength_growth;
-  m_intellect_growth = stats.m_intellect_growth;
+  m_attack = stats.m_attack;
+  m_speed = stats.m_speed;
+  m_magic = stats.m_magic;
   m_level = level;
   m_exp = exp;
   m_current_level_starting_exp = exp;
-  m_attack = DEFAULT_ATTACK;
-  m_accuracy = DEFAULT_ACCURACY;
   if(m_level == 1)
   {
     m_hp_max = m_base_hp;
@@ -262,8 +189,8 @@ Player_Stats::Player_Stats(const Character_Base_Stats & stats, const long & leve
   }
   else
   {
-    m_hp_max = m_base_hp + (m_level - 1) * m_stamina_growth[m_level - 2] + m_stamina_growth[0] * (m_level - 1) / 2;
-    m_mp_max = m_base_mp + (m_spirit_growth[m_level - 2] + m_spirit_growth[0]) * (m_level - 1) / 10;
+    m_hp_max = m_base_hp;
+    m_mp_max = m_base_mp;
   }
   m_hp_now = m_hp_max;
   m_mp_now = m_mp_max;
@@ -278,8 +205,8 @@ void Player_Stats::update_stats()
   }
   else
   {
-    m_hp_max = m_base_hp + (m_level - 1) * m_stamina_growth[m_level - 1] + m_stamina_growth[0] * (m_level - 1) / 2;
-    m_mp_max = m_base_mp + (m_spirit_growth[m_level - 1] + m_spirit_growth[0]) * (m_level - 1) / 10;
+    m_hp_max = m_base_hp;
+    m_mp_max = m_base_mp;
   }
 }
 
@@ -354,51 +281,19 @@ long Player_Stats::get_unmodified_stat(const string & stat) const
   }
   else if(stat == "Speed")
   {
-    return 0;
+    return m_speed;
   }
   else if(stat == "Defense")
   {
     return m_defense;
   }
-  else if(stat == "Resistance")
-  {
-    return m_resistance;
-  }
-  else if(stat == "Evasion")
-  {
-    return m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    return m_magic_evasion;
-  }
-  else if(stat == "Critical")
-  {
-    return m_critical;
-  }
   else if(stat == "Attack")
   {
     return m_attack;
   }
-  else if(stat == "Accuracy")
+  else if(stat == "Magic")
   {
-    return m_accuracy;
-  }
-  else if(stat == "Spirit")
-  {
-    return m_spirit_growth[m_level - 1];
-  }
-  else if(stat == "Stamina")
-  {
-    return m_stamina_growth[m_level - 1];
-  }
-  else if(stat == "Strength")
-  {
-    return m_strength_growth[m_level - 1];
-  }
-  else if(stat == "Intellect")
-  {
-    return m_intellect_growth[m_level - 1];
+    return m_magic;
   }
   else
   {
@@ -423,51 +318,19 @@ long Player_Stats::get_stat(const string & stat) const
   }
   else if(stat == "Speed")
   {
-    unmodified_stat = 0;
+    unmodified_stat = m_speed;
   }
   else if(stat == "Defense")
   {
     unmodified_stat = m_defense;
   }
-  else if(stat == "Resistance")
-  {
-    unmodified_stat = m_resistance;
-  }
-  else if(stat == "Evasion")
-  {
-    unmodified_stat = m_evasion;
-  }
-  else if(stat == "Magic Evasion")
-  {
-    unmodified_stat = m_magic_evasion;
-  }
-  else if(stat == "Critical")
-  {
-    unmodified_stat = m_critical;
-  }
   else if(stat == "Attack")
   {
     unmodified_stat = m_attack;
   }
-  else if(stat == "Accuracy")
+  else if(stat == "Magic")
   {
-    unmodified_stat = m_accuracy;
-  }
-  else if(stat == "Spirit")
-  {
-    unmodified_stat = m_spirit_growth[m_level - 1];
-  }
-  else if(stat == "Stamina")
-  {
-    unmodified_stat = m_stamina_growth[m_level - 1];
-  }
-  else if(stat == "Strength")
-  {
-    unmodified_stat = m_strength_growth[m_level - 1];
-  }
-  else if(stat == "Intellect")
-  {
-    unmodified_stat = m_intellect_growth[m_level - 1];
+    unmodified_stat = m_magic;
   }
   else
   {
@@ -590,10 +453,14 @@ Party_Member::Party_Member(const Player_Info & player)
   m_name = player.m_name;
   m_species = player.m_species;
   m_class = player.m_class;
-  m_row = player.m_starting_row;
-  m_soul_break_level = 1;
   m_stats = Player_Stats{player.m_stats};
   m_icon = player.m_icon;
+  m_sprite_width = player.m_sprite_width;
+
+  Image image3{LoadImageFromMemory(".png", player.m_sprite_data, player.m_sprite_size)};
+  m_sprite = LoadTextureFromImage(image3);
+  UnloadImage(image3);
+
   Image image{LoadImageFromMemory(".png", player.m_portrait_data, player.m_portrait_size)};
   m_portrait = LoadTextureFromImage(image);
   UnloadImage(image);
@@ -605,24 +472,13 @@ Party_Member::Party_Member(const Player_Info & player)
 
 Party_Member::~Party_Member()
 {
+  UnloadTexture(m_sprite);
   UnloadTexture(m_portrait);
   UnloadTexture(m_small_portrait);
   if(m_equipped_weapon != nullptr)
   {
     delete m_equipped_weapon;
     m_equipped_weapon = nullptr;
-    --mem;
-  }
-  if(m_equipped_offhand != nullptr)
-  {
-    delete m_equipped_offhand;
-    m_equipped_offhand = nullptr;
-    --mem;
-  }
-  if(m_equipped_helmet != nullptr)
-  {
-    delete m_equipped_helmet;
-    m_equipped_helmet = nullptr;
     --mem;
   }
   if(m_equipped_armor != nullptr)
@@ -645,43 +501,11 @@ Party_Member::~Party_Member()
   }
 }
 
-bool Party_Member::set_front_row()
-{
-  bool ret{m_row == false};
-  m_row = true;
-  return ret;
-}
-
-bool Party_Member::set_back_row()
-{
-  bool ret{m_row == true};
-  m_row = false;
-  return ret;
-}
-
 void Party_Member::equip(Equipment* equip, const long & slot)
 {
   if(equip->get_type() == "Weapon")
   {
     m_equipped_weapon = equip;
-    for(long i{0}; i < static_cast<long>(equip->get_stats().size()); ++i)
-    {
-      m_stats.add_modifier(equip->get_stats()[i]);
-    }
-  }
-
-  if(equip->get_type() == "Shield")
-  {
-    m_equipped_offhand = equip;
-    for(long i{0}; i < static_cast<long>(equip->get_stats().size()); ++i)
-    {
-      m_stats.add_modifier(equip->get_stats()[i]);
-    }
-  }
-
-  if(equip->get_type() == "Helm")
-  {
-    m_equipped_helmet = equip;
     for(long i{0}; i < static_cast<long>(equip->get_stats().size()); ++i)
     {
       m_stats.add_modifier(equip->get_stats()[i]);
@@ -729,34 +553,6 @@ void Party_Member::unequip(World* world, const string & item_type, const long & 
       world->add_equipment(m_equipped_weapon->get_name());
       delete m_equipped_weapon;
       m_equipped_weapon = nullptr;
-      --mem;
-    }
-  }
-  if(item_type == "Shield")
-  {
-    if(m_equipped_offhand != nullptr)
-    {
-      for(long i{0}; i < static_cast<long>(m_equipped_offhand->get_stats().size()); ++i)
-      {
-        m_stats.remove_modifier(m_equipped_offhand->get_stats()[i]);
-      }
-      world->add_equipment(m_equipped_offhand->get_name());
-      delete m_equipped_offhand;
-      m_equipped_offhand = nullptr;
-      --mem;
-    }
-  }
-  if(item_type == "Helm")
-  {
-    if(m_equipped_helmet != nullptr)
-    {
-      for(long i{0}; i < static_cast<long>(m_equipped_helmet->get_stats().size()); ++i)
-      {
-        m_stats.remove_modifier(m_equipped_helmet->get_stats()[i]);
-      }
-      world->add_equipment(m_equipped_helmet->get_name());
-      delete m_equipped_helmet;
-      m_equipped_helmet = nullptr;
       --mem;
     }
   }
@@ -813,24 +609,6 @@ Equipment* Party_Member::get_equipped_weapon() const
   return nullptr;
 }
 
-Equipment* Party_Member::get_equipped_shield() const
-{
-  if(m_equipped_offhand != nullptr)
-  {
-    return m_equipped_offhand;
-  }
-  return nullptr;
-}
-
-Equipment* Party_Member::get_equipped_helm() const
-{
-  if(m_equipped_helmet != nullptr)
-  {
-    return m_equipped_helmet;
-  }
-  return nullptr;
-}
-
 Equipment* Party_Member::get_equipped_armor() const
 {
   if(m_equipped_armor != nullptr)
@@ -869,40 +647,6 @@ vector<long> Party_Member::predict_stats(const World* const world, const string 
       for(long i{0}; i < static_cast<long>(m_equipped_weapon->get_stats().size()); ++i)
       {
         predict.remove_modifier(m_equipped_weapon->get_stats()[i]);
-      }
-    }
-    if(same_item == false)
-    {
-      for(long i{0}; i < static_cast<long>(world->get_equipment_stat_modifiers(item_name).size()); ++i)
-      {
-        predict.add_modifier(world->get_equipment_stat_modifiers(item_name)[i]);
-      }
-    }
-  }
-  if(item_type == "Shield")
-  {
-    if(m_equipped_offhand != nullptr)
-    {
-      for(long i{0}; i < static_cast<long>(m_equipped_offhand->get_stats().size()); ++i)
-      {
-        predict.remove_modifier(m_equipped_offhand->get_stats()[i]);
-      }
-    }
-    if(same_item == false)
-    {
-      for(long i{0}; i < static_cast<long>(world->get_equipment_stat_modifiers(item_name).size()); ++i)
-      {
-        predict.add_modifier(world->get_equipment_stat_modifiers(item_name)[i]);
-      }
-    }
-  }
-  if(item_type == "Helm")
-  {
-    if(m_equipped_helmet != nullptr)
-    {
-      for(long i{0}; i < static_cast<long>(m_equipped_helmet->get_stats().size()); ++i)
-      {
-        predict.remove_modifier(m_equipped_helmet->get_stats()[i]);
       }
     }
     if(same_item == false)
@@ -979,7 +723,7 @@ vector<long> Party_Member::predict_stats(const World* const world, const string 
     }
   }
 
-  return vector<long>{predict.get_stat("Strength") - m_stats.get_stat("Strength"), predict.get_stat("Attack") - m_stats.get_stat("Attack"), predict.get_stat("Speed") - m_stats.get_stat("Speed"), predict.get_stat("Defense") - m_stats.get_stat("Defense"), predict.get_stat("Intellect") - m_stats.get_stat("Intellect"), predict.get_stat("Resistance") - m_stats.get_stat("Resistance"), predict.get_stat("Stamina") - m_stats.get_stat("Stamina"), predict.get_stat("Accuracy") - m_stats.get_stat("Accuracy"), predict.get_stat("Spirit") - m_stats.get_stat("Spirit"), predict.get_stat("Critical") - m_stats.get_stat("Critical"), predict.get_stat("Evasion") - m_stats.get_stat("Evasion"), predict.get_stat("Magic Evasion") - m_stats.get_stat("Magic Evasion"), predict.get_stat("Max HP") - m_stats.get_stat("Max HP"), predict.get_stat("Max MP") - m_stats.get_stat("Max MP")};
+  return vector<long>{predict.get_stat("Attack") - m_stats.get_stat("Attack"), predict.get_stat("Defense") - m_stats.get_stat("Defense"), predict.get_stat("Magic") - m_stats.get_stat("Magic"), predict.get_stat("Speed") - m_stats.get_stat("Speed"), predict.get_stat("Max HP") - m_stats.get_stat("Max HP"), predict.get_stat("Max MP") - m_stats.get_stat("Max MP")};
 }
 
 void Party::update_stats()
@@ -996,32 +740,6 @@ long Party::count_equipped_weapons() const
   for(long i{0}; i < m_members.get_list_size(); ++i)
   {
     if(m_members[i]->get_equipped_weapon() != nullptr)
-    {
-      ++count;
-    }
-  }
-  return count;
-}
-
-long Party::count_equipped_shields() const
-{
-  long count{0};
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_shield() != nullptr)
-    {
-      ++count;
-    }
-  }
-  return count;
-}
-
-long Party::count_equipped_helms() const
-{
-  long count{0};
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_helm() != nullptr)
     {
       ++count;
     }
@@ -1108,32 +826,6 @@ vector<string> Party::get_equipped_weapon_names() const
   return count;
 }
 
-vector<string> Party::get_equipped_shield_names() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_shield() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_shield()->get_name());
-    }
-  }
-  return count;
-}
-
-vector<string> Party::get_equipped_helm_names() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_helm() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_helm()->get_name());
-    }
-  }
-  return count;
-}
-
 vector<string> Party::get_equipped_armor_names() const
 {
   vector<string> count;
@@ -1172,32 +864,6 @@ vector<string> Party::get_equipped_weapon_descriptions() const
     if(m_members[i]->get_equipped_weapon() != nullptr)
     {
       count.push_back(m_members[i]->get_equipped_weapon()->get_description());
-    }
-  }
-  return count;
-}
-
-vector<string> Party::get_equipped_shield_descriptions() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_shield() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_shield()->get_description());
-    }
-  }
-  return count;
-}
-
-vector<string> Party::get_equipped_helm_descriptions() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_helm() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_helm()->get_description());
     }
   }
   return count;
@@ -1246,32 +912,6 @@ vector<string> Party::get_equipped_weapon_equipped_bys() const
   return count;
 }
 
-vector<string> Party::get_equipped_shield_equipped_bys() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_shield() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_shield()->get_equipped_by());
-    }
-  }
-  return count;
-}
-
-vector<string> Party::get_equipped_helm_equipped_bys() const
-{
-  vector<string> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_helm() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_helm()->get_equipped_by());
-    }
-  }
-  return count;
-}
-
 vector<string> Party::get_equipped_armor_equipped_bys() const
 {
   vector<string> count;
@@ -1310,32 +950,6 @@ vector<long> Party::get_equipped_weapon_icons() const
     if(m_members[i]->get_equipped_weapon() != nullptr)
     {
       count.push_back(m_members[i]->get_equipped_weapon()->get_icon());
-    }
-  }
-  return count;
-}
-
-vector<long> Party::get_equipped_shield_icons() const
-{
-  vector<long> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_shield() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_shield()->get_icon());
-    }
-  }
-  return count;
-}
-
-vector<long> Party::get_equipped_helm_icons() const
-{
-  vector<long> count;
-  for(long i{0}; i < m_members.get_list_size(); ++i)
-  {
-    if(m_members[i]->get_equipped_helm() != nullptr)
-    {
-      count.push_back(m_members[i]->get_equipped_helm()->get_icon());
     }
   }
   return count;
@@ -1419,8 +1033,10 @@ World::World()
     new Fnt{HEADING_FONT},
     new Fnt{CHARACTER_TITLE_FONT},
     new Fnt{RED_FONT},
-    new Fnt{GREEN_FONT}
+    new Fnt{GREEN_FONT},
+    new Fnt{GRAY_FONT}
   });
+  ++mem;
   ++mem;
   ++mem;
   ++mem;
@@ -1441,11 +1057,7 @@ World::World()
   m_continue_arrow_texture = LoadTextureFromImage(image3);
   UnloadImage(image3);
   
-  m_party.add_party_member(TEMPEST_SHADOW_INFO);
-  add_item("Heal Potion");
-  add_item("Heal Potion");
-  add_item("Money Bag");
-  add_item("Money Bag");
+  m_party.add_party_member(TWILIGHT_SPARKLE_INFO);
 
   m_progress_bar_image_names.push_back(PROGRESS_BAR_BACKGROUND_IMAGE.m_name);
   Image progress_bar1{LoadImageFromMemory(".png", PROGRESS_BAR_BACKGROUND_IMAGE.m_data, PROGRESS_BAR_BACKGROUND_IMAGE.m_size)};
@@ -1582,6 +1194,21 @@ void World::remove_equipment(const string & item)
   }
 }
 
+void World::render_cursor() const
+{
+  m_cursor->render();
+}
+
+void World::set_cursor_destination(const long & x, const long & y)
+{
+  m_cursor->set_destination(x, y);
+}
+
+void World::render_text_center(const string & font_name, string text, const long & y_pos, const long & alpha) const
+{
+  m_fonts[font_name]->render_text_center(text, y_pos, alpha);
+}
+
 void World::render_progress_bar(const string & color, const long & x, const long & y) const
 {
   for(long i{0}; i < static_cast<long>(m_progress_bar_image_names.size()); ++i)
@@ -1593,6 +1220,16 @@ void World::render_progress_bar(const string & color, const long & x, const long
     }
   }
   crash("Error: Progress bar image \"" + color + "\" doesn't exist!");
+}
+
+void World::render_letter(const string & font_name, const long & x, const long & y, const char & id, const long & alpha) const
+{
+  m_fonts[font_name]->render_letter(x, y, id, alpha);
+}
+
+void World::render_text(const string & font_name, string text, const long & x, const long & y, const long & alpha) const
+{
+  m_fonts[font_name]->render_text(text, x, y, alpha);
 }
 
 void World::render_panel(const long & x, const long & y, const long & w, const long & h) const
@@ -1615,23 +1252,35 @@ void World::render_panel(const long & x, const long & y, const long & w, const l
 
 const Player_Info & World::get_party_member_info(const string & name) const
 {
-  if(name == "Tempest")
+  if(name == "Twilight Sparkle")
   {
-    return TEMPEST_SHADOW_INFO;
+    return TWILIGHT_SPARKLE_INFO;
   }
-  else if(name == "Nightwish")
+  else if(name == "Pinkie Pie")
   {
-    return NIGHTWISH_INFO;
+    return PINKIE_PIE_INFO;
   }
-  else if(name == "Gallus")
+  else if(name == "Applejack")
   {
-    return GALLUS_INFO;
+    return APPLEJACK_INFO;
+  }
+  else if(name == "Rainbow Dash")
+  {
+    return RAINBOW_DASH_INFO;
+  }
+  else if(name == "Fluttershy")
+  {
+    return FLUTTERSHY_INFO;
+  }
+  else if(name == "Rarity")
+  {
+    return RARITY_INFO;
   }
   else
   {
     crash("Error: Party member \"" + name + "\" is not in the game.");
   }
-  return TEMPEST_SHADOW_INFO;
+  return TWILIGHT_SPARKLE_INFO;
 }
 
 vector<string> World::get_inventory_item_names() const
@@ -1702,32 +1351,6 @@ long World::get_number_of_equipped_and_inventory_weapons() const
   return num;
 }
 
-long World::get_number_of_equipped_and_inventory_shields() const
-{
-  long num{m_party.count_equipped_shields()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      ++num;
-    }
-  }
-  return num;
-}
-
-long World::get_number_of_equipped_and_inventory_helms() const
-{
-  long num{m_party.count_equipped_helms()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
-    {
-      ++num;
-    }
-  }
-  return num;
-}
-
 long World::get_number_of_equipped_and_inventory_armor() const
 {
   long num{m_party.count_equipped_armor()};
@@ -1760,32 +1383,6 @@ vector<string> World::get_equipped_and_inventory_weapon_names() const
   for(long i{0}; i < m_equipment.get_list_size(); ++i)
   {
     if(m_equipment[i]->get_type() == "Weapon")
-    {
-      num.push_back(m_equipment[i]->get_name());
-    }
-  }
-  return num;
-}
-
-vector<string> World::get_equipped_and_inventory_shield_names() const
-{
-  vector<string> num{m_party.get_equipped_shield_names()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      num.push_back(m_equipment[i]->get_name());
-    }
-  }
-  return num;
-}
-
-vector<string> World::get_equipped_and_inventory_helm_names() const
-{
-  vector<string> num{m_party.get_equipped_helm_names()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
     {
       num.push_back(m_equipment[i]->get_name());
     }
@@ -1832,32 +1429,6 @@ vector<string> World::get_equipped_and_inventory_weapon_descriptions() const
   return num;
 }
 
-vector<string> World::get_equipped_and_inventory_shield_descriptions() const
-{
-  vector<string> num{m_party.get_equipped_shield_descriptions()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      num.push_back(m_equipment[i]->get_description());
-    }
-  }
-  return num;
-}
-
-vector<string> World::get_equipped_and_inventory_helm_descriptions() const
-{
-  vector<string> num{m_party.get_equipped_helm_descriptions()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
-    {
-      num.push_back(m_equipment[i]->get_description());
-    }
-  }
-  return num;
-}
-
 vector<string> World::get_equipped_and_inventory_armor_descriptions() const
 {
   vector<string> num{m_party.get_equipped_armor_descriptions()};
@@ -1894,40 +1465,6 @@ vector<long> World::get_equipped_and_inventory_weapon_quantities() const
   for(long i{0}; i < m_equipment.get_list_size(); ++i)
   {
     if(m_equipment[i]->get_type() == "Weapon")
-    {
-      num.push_back(m_equipment[i]->get_count());
-    }
-  }
-  return num;
-}
-
-vector<long> World::get_equipped_and_inventory_shield_quantities() const
-{
-  vector<long> num;
-  for(long i{0}; i < m_party.count_equipped_shields(); ++i)
-  {
-    num.push_back(1);
-  }
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      num.push_back(m_equipment[i]->get_count());
-    }
-  }
-  return num;
-}
-
-vector<long> World::get_equipped_and_inventory_helm_quantities() const
-{
-  vector<long> num;
-  for(long i{0}; i < m_party.count_equipped_helms(); ++i)
-  {
-    num.push_back(1);
-  }
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
     {
       num.push_back(m_equipment[i]->get_count());
     }
@@ -1982,32 +1519,6 @@ vector<string> World::get_equipped_and_inventory_weapon_equipped_bys() const
   return num;
 }
 
-vector<string> World::get_equipped_and_inventory_shield_equipped_bys() const
-{
-  vector<string> num{m_party.get_equipped_shield_equipped_bys()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      num.push_back("NULL");
-    }
-  }
-  return num;
-}
-
-vector<string> World::get_equipped_and_inventory_helm_equipped_bys() const
-{
-  vector<string> num{m_party.get_equipped_helm_equipped_bys()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
-    {
-      num.push_back("NULL");
-    }
-  }
-  return num;
-}
-
 vector<string> World::get_equipped_and_inventory_armor_equipped_bys() const
 {
   vector<string> num{m_party.get_equipped_armor_equipped_bys()};
@@ -2047,32 +1558,6 @@ vector<long> World::get_equipped_and_inventory_weapon_icons() const
   return num;
 }
 
-vector<long> World::get_equipped_and_inventory_shield_icons() const
-{
-  vector<long> num{m_party.get_equipped_shield_icons()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Shield")
-    {
-      num.push_back(m_equipment[i]->get_icon());
-    }
-  }
-  return num;
-}
-
-vector<long> World::get_equipped_and_inventory_helm_icons() const
-{
-  vector<long> num{m_party.get_equipped_helm_icons()};
-  for(long i{0}; i < m_equipment.get_list_size(); ++i)
-  {
-    if(m_equipment[i]->get_type() == "Helm")
-    {
-      num.push_back(m_equipment[i]->get_icon());
-    }
-  }
-  return num;
-}
-
 vector<long> World::get_equipped_and_inventory_armor_icons() const
 {
   vector<long> num{m_party.get_equipped_armor_icons()};
@@ -2102,28 +1587,6 @@ vector<long> World::get_equipped_and_inventory_accessory_icons() const
 vector<bool> World::get_equipped_and_inventory_weapon_usable_bys(const string & character) const
 {
   vector<string> num2{get_equipped_and_inventory_weapon_names()};
-  vector<bool> num;
-  for(long i{0}; i < static_cast<long>(num2.size()); ++i)
-  {
-    num.push_back(can_use_equipment(character, num2[i]));
-  }
-  return num;
-}
-
-vector<bool> World::get_equipped_and_inventory_shield_usable_bys(const string & character) const
-{
-  vector<string> num2{get_equipped_and_inventory_shield_names()};
-  vector<bool> num;
-  for(long i{0}; i < static_cast<long>(num2.size()); ++i)
-  {
-    num.push_back(can_use_equipment(character, num2[i]));
-  }
-  return num;
-}
-
-vector<bool> World::get_equipped_and_inventory_helm_usable_bys(const string & character) const
-{
-  vector<string> num2{get_equipped_and_inventory_helm_names()};
   vector<bool> num;
   for(long i{0}; i < static_cast<long>(num2.size()); ++i)
   {

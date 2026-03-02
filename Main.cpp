@@ -56,6 +56,12 @@ int main(int argc, char* args[])
   delete g_sound_player;
   g_sound_player = nullptr;
   --mem;
+
+  if(mem != 0)
+  {
+    crash("ALERT: " + to_string(mem) + " objects leaking memory!");
+  }
+
   CloseAudioDevice();     // Close audio device
   CloseWindow();        // Close window and OpenGL context
   return mem;

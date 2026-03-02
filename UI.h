@@ -1,7 +1,48 @@
 #ifndef UI_H
 #define UI_H
+#include "Animation.h"
 
-#include "World.h"
+struct Font_Params
+{
+  explicit Font_Params(const string & name = "Text", const Image_Params & image = TEXT_FONT_IMAGE, const long & cell_width = FONT_TEXT_CELL_WIDTH, const array<long, NUM_FONT_CELLS> & char_widths = FONT_TEXT_CHAR_WIDTHS) : m_name(name), m_data(image.m_data), m_size(image.m_size), m_cell_width(cell_width), m_char_widths(char_widths){}
+  explicit Font_Params(const Font_Params & obj) = default;
+  Font_Params & operator =(const Font_Params & obj) = default;
+  string m_name{"NULL"};
+  const unsigned char* m_data{nullptr};
+  long m_size{1};
+  long m_cell_width{0};
+  const array<long, NUM_FONT_CELLS> m_char_widths{};
+};
+
+const Font_Params TEXT_FONT{};
+const Font_Params HEADING_FONT{"Heading", HEADING_FONT_IMAGE, FONT_HEADING_CELL_WIDTH, FONT_HEADING_CHAR_WIDTHS};
+const Font_Params CHARACTER_TITLE_FONT{"Character Title", TEXT_FONT_YELLOW_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params RED_FONT{"Red", TEXT_FONT_RED_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params GREEN_FONT{"Green", TEXT_FONT_GREEN_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+const Font_Params GRAY_FONT{"Gray", TEXT_FONT_GRAY_IMAGE, FONT_TEXT_CELL_WIDTH, FONT_TEXT_CHAR_WIDTHS};
+
+class Fnt
+{
+  public:
+    explicit Fnt(const Font_Params & font_to_load = TEXT_FONT);
+    Fnt(const Fnt & obj) = delete;
+    Fnt & operator =(const Fnt & obj) = delete;
+    ~Fnt(){UnloadTexture(m_font_img);}
+
+    string get_name() const{return m_name;}
+    long get_height() const{return m_font_img.height;}
+    long get_cell_width() const{return m_cell_width;}
+    long get_char_width(const long & index) const{return m_char_widths[index];}
+    long get_word_width(string word) const;
+    void render_text(string text, const long & x_pos, const long & y_pos, const long & alpha = 255) const;
+    void render_text_center(string text, const long & y_pos, const long & alpha = 255) const{render_text(text, SCREEN_WIDTH / 2 - get_word_width(text) / 2, y_pos, alpha);}
+    void render_letter(const long & x, const long & y, const char & id, const long & alpha = 255) const{DrawTexturePro(m_font_img, Rectangle{static_cast<float>(m_cell_width * id), 0, static_cast<float>(m_cell_width), static_cast<float>(m_font_img.height)}, Rectangle{static_cast<float>(x), static_cast<float>(y), static_cast<float>(m_cell_width), static_cast<float>(m_font_img.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(alpha)});}
+  private:
+    string m_name{"NULL"};
+    long m_cell_width{0};
+    array<long, NUM_FONT_CELLS> m_char_widths{};
+    Texture2D m_font_img{};
+};
 
 class Progress_Bar
 {
@@ -29,6 +70,7 @@ class Panel
     Panel & operator =(const Panel & obj) = delete;
     ~Panel(){}
 
+    // used by Textbox to update the position of the panel from its tween variables
     void set_position(const double & x, const double & y, const double & width, const double & height){m_x = x; m_y = y; m_w = width; m_h = height;}
     void render(const World* const world) const{world->render_panel(m_x, m_y, m_w, m_h);}
   private:
@@ -41,26 +83,23 @@ class Panel
 class Player_Summary
 {
   public:
-    explicit Player_Summary(const long & x, const long & y, const Player_Info & player, const string & party_member_name, const bool & row, const string & party_member_species, const string & party_member_class, const long & level, const long & hp, const long & max_hp, const long & mp, const long & max_mp, const long & exp, const long & exp_to_next_level) : m_x(x), m_y(y), m_player_name(party_member_name), m_row(row), m_player_species(party_member_species), m_player_class(party_member_class), m_level(level), m_current_hp(hp), m_max_hp(max_hp), m_current_mp(mp), m_max_mp(max_mp), m_current_exp(exp), m_exp_to_next_level(exp_to_next_level), m_portrait_tween_current(row == true ? 0 : PLAYER_SUMMARY_ROW_OFFSET), m_portrait_tween_end(row == true ? 0 : PLAYER_SUMMARY_ROW_OFFSET), m_y_tween_current(y), m_y_tween_end(y), m_hp(new Progress_Bar{"Progress Bar Green", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_mp(new Progress_Bar{"Progress Bar Blue", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_exp(new Progress_Bar{"Progress Bar Pink", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_soul_break(new Progress_Bar{"Progress Bar Red", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_scroll(new Progress_Bar{"Progress Bar Orange", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}){mem += 5; Image image{LoadImageFromMemory(".png", player.m_small_portrait_data, player.m_small_portrait_size)}; m_small_portrait = LoadTextureFromImage(image); UnloadImage(image);}
+    explicit Player_Summary(const long & x, const long & y, const Player_Info & player, const string & party_member_name, const string & party_member_species, const string & party_member_class, const long & level, const long & hp, const long & max_hp, const long & mp, const long & max_mp, const long & exp, const long & exp_to_next_level, const long & attack, const long & defense, const long & magic, const long & speed) : m_x(x), m_y(y), m_player_name(party_member_name), m_player_species(party_member_species), m_player_class(party_member_class), m_level(level), m_current_hp(hp), m_max_hp(max_hp), m_current_mp(mp), m_max_mp(max_mp), m_current_exp(exp), m_exp_to_next_level(exp_to_next_level), m_attack(attack), m_defense(defense), m_magic(magic), m_speed(speed), m_y_tween_current(y), m_y_tween_end(y), m_hp(new Progress_Bar{"Progress Bar Green", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_mp(new Progress_Bar{"Progress Bar Blue", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}), m_exp(new Progress_Bar{"Progress Bar Pink", PLAYER_SUMMARY_PROGRESS_BAR_LENGTH}){mem += 3; Image image{LoadImageFromMemory(".png", player.m_small_portrait_data, player.m_small_portrait_size)}; m_small_portrait = LoadTextureFromImage(image); UnloadImage(image);}
     Player_Summary(const Player_Summary & obj) = delete;
     Player_Summary & operator =(const Player_Summary & obj) = delete;
     ~Player_Summary();
-    
+
     void render(const World* const world) const;
 
+    // needed by List
     string get_name() const{return m_player_name;}
-    void set_portrait_tween(const bool & start){m_portrait_tween_end = start == true ? 0 : PLAYER_SUMMARY_ROW_OFFSET;}
     void set_y_tween(const long & index1, const long & index2, const bool & index);
     void update_tweens();
     bool get_switch() const{return m_switch_rect;}
     void toggle_switch_rect(){m_switch_rect == true ? m_switch_rect = false : m_switch_rect = true;}
-    void set_member_front_row(){m_row = true;}
-    void set_member_back_row(){m_row = false;}
   private:
     long m_x{0};
     long m_y{0};
     string m_player_name{"NULL"};
-    bool m_row{true};
     string m_player_species{"NULL"};
     string m_player_class{"NULL"};
     long m_level{1};
@@ -70,8 +109,10 @@ class Player_Summary
     long m_max_mp{0};
     long m_current_exp{0};
     long m_exp_to_next_level{0};
-    double m_portrait_tween_current{0};
-    long m_portrait_tween_end{0};
+    long m_attack{10};
+    long m_defense{10};
+    long m_magic{10};
+    long m_speed{10};
     double m_y_tween_current{0};
     long m_y_tween_end{0};
     bool m_switch_rect{false};
@@ -79,8 +120,6 @@ class Player_Summary
     Progress_Bar* m_hp{nullptr};
     Progress_Bar* m_mp{nullptr};
     Progress_Bar* m_exp{nullptr};
-    Progress_Bar* m_soul_break{nullptr};
-    Progress_Bar* m_scroll{nullptr};
     Texture2D m_small_portrait{};
 };
 
@@ -92,9 +131,9 @@ class Selection
     Selection & operator =(const Selection & obj) = delete;
     ~Selection(){}
 
-    void update_input(World* world, const long & x, const long & y, const long & spacing_x, const long & spacing_y = TEXT_FONT_HEIGHT);
+    void update_input(World* world, Input_Wrapper* input, const long & x, const long & y, const long & spacing_x, const long & spacing_y = TEXT_FONT_HEIGHT);
 
-    long get_highlighted_item() const{return m_highlighted_item;}
+    long get_highlighted_item() const{return m_focus_x + m_focus_y * m_columns;}
     void show_cursor(){m_show_cursor = true;}
     void hide_cursor(){m_show_cursor = false;}
     bool cursor_shown() const{return m_show_cursor;}
@@ -119,8 +158,7 @@ class Selection
     bool m_show_cursor{true};
     bool m_show_menu{true};
     long m_display_start{0};
-    long m_highlighted_item{0};
-    Blinking_Animation m_continue_arrow_animation{true, false, 8};
+    Blinking_Animation m_continue_arrow_animation{true, false, BLINKING_ANIMATION_SPEED};
 };
 
 class Selection_Renderer
@@ -135,19 +173,11 @@ class Selection_Renderer
     void render_key_items(const vector<string> & choices, const World* const world, const vector<string> & item_descriptions) const;
     void render_equipment(const vector<string> & choices, const World* const world, const string & character_name, const string & equipment_type, const long & slot, const vector<string> & item_descriptions, const vector<long> & item_quantities, const vector<string> & item_equipped_bys, const vector<long> & item_icons, const vector<bool> & item_usable_bys, const vector<long> & item_slots = vector<long>{}) const;
     void render_status_menu(const vector<string> & choices, const World* const world,
-                            const long & strength, const long & unmodified_strength, const long & strength_difference,
                             const long & attack, const long & unmodified_attack, const long & attack_difference,
-                            const long & speed, const long & unmodified_speed, const long & speed_difference,
                             const long & defense, const long & unmodified_defense, const long & defense_difference,
                             const long & intellect, const long & unmodified_intellect, const long & intellect_difference,
-                            const long & resistance, const long & unmodified_resistance, const long & resistance_difference,
-                            const long & stamina, const long & unmodified_stamina, const long & stamina_difference,
-                            const long & accuracy, const long & unmodified_accuracy, const long & accuracy_difference,
-                            const long & spirit, const long & unmodified_spirit, const long & spirit_difference,
-                            const long & critical, const long & unmodified_critical, const long & critical_difference,
-                            const long & evasion, const long & unmodified_evasion, const long & evasion_difference,
-                            const long & magic_evasion, const long & unmodified_magic_evasion, const long & magic_evasion_difference,
-                            const string & weapon_name, const long & weapon_icon, const string & shield_name, const long & shield_icon, const string & helm_name, const long & helm_icon, const string & armor_name, const long & armor_icon, const string & accessory_one_name, const long & accessory_one_icon, const string & accessory_two_name, const long & accessory_two_icon) const;
+                            const long & speed, const long & unmodified_speed, const long & speed_difference,
+                            const string & weapon_name, const long & weapon_icon, const string & armor_name, const long & armor_icon, const string & accessory_one_name, const long & accessory_one_icon) const;
   private:
     const Selection* const m_selection{};
     long m_x{0};
@@ -162,25 +192,27 @@ class Textbox
     explicit Textbox(){}
     void add_text(const string & text){m_text = text;}
     void add_title(const string & title){m_title_text = title;}
-    void add_portrait(const Image_Params & image){Image the_image{LoadImageFromMemory(".png", image.m_data, image.m_size)}; m_portrait_img = LoadTextureFromImage(the_image); UnloadImage(the_image);}
+    void add_portrait(const Image_Params* image){Image the_image{LoadImageFromMemory(".png", image->m_data, image->m_size)}; m_portrait_img = LoadTextureFromImage(the_image); UnloadImage(the_image);}
     void add_selection_menu(Selection* s, Selection_Renderer* sr){m_selection = s; m_selection_renderer = sr;}
-    void create_fitted(const long & size_x, const long & size_y){create_fixed(size_x, size_y, get_text_font_word_width(m_text) + TEXTBOX_PADDING_LONG * 2, TEXT_FONT_HEIGHT + TEXTBOX_PADDING_SHORT * 2);}
+    void create_fitted(const long & size_x, const long & size_y){create_fixed(size_x, size_y, get_text_font_word_width(m_text) + TEXTBOX_PANEL_OFFSET_X * 2, PANEL_HEIGHT_ONE_LINE);}
     void create_fitted_choices(const long & size_x, const long & size_y, const vector<string> & choices);
-    void create_fixed(const long & size_x, const long & size_y, const long & size_width, const long & size_height);
+    void create_fixed(const long & size_x, const long & size_y, const long & size_width, const long & size_height, const bool & show_panel = true);
     Textbox(const Textbox & obj) = delete;
     Textbox & operator =(const Textbox & obj) = delete;
     ~Textbox();
 
-    void update_input(World* world);
+    void update_input(World* world, Input_Wrapper* input);
     void render(const World* const world) const;
     
     long get_selected_item() const{return m_selection->get_highlighted_item();}
+    // used in scripts to determine if a script involving a text box is done
     bool dead() const{return m_dead;}
 
   private:
     void on_click();
     void break_text(string text);
   
+    bool m_show_panel{true};
     string m_text{""};
     string m_title_text{""};
     long m_size_x{-1};

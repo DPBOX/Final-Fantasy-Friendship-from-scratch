@@ -1,7 +1,71 @@
 #include "Main.h"
+#include "Script.h"
+#include "UI.h"
 #include "Tilemap.h"
 
-Map_Handler::Script::~Script()
+Script_Handler::~Script_Handler()
+{
+  if(m_script != nullptr)
+  {
+    delete m_script;
+    m_script = nullptr;
+    --mem;
+  }
+}
+
+tuple<bool, string, string, bool, const Map_Data*, tuple<Direction, long, long, long>> Script_Handler::update_input(Tilemap* map, Music_Player* music_player, World* world, Input_Wrapper* input)
+{
+  tuple<bool, string, string, bool, long, const Map_Data*, tuple<Direction, long, long, long>> s{make_tuple(false, "NULL", "NULL", false, -1, nullptr, make_tuple(Direction::Down, 0, 0, 0))};
+  if(m_script != nullptr)
+  {
+    s = m_script->update_input(map, music_player, world, input);
+    if(get<5>(s) != nullptr)
+    {
+      m_script_list = get<5>(s)->m_scripts;
+    }
+    if(get<3>(s) == true)
+    {
+      delete m_script;
+      m_script = nullptr;
+      --mem;
+      if(get<4>(s) != -1)
+      {
+        if(get<4>(s) >= 0 && get<4>(s) < static_cast<long>(m_script_list.size()))
+        {
+          run_script(get<4>(s));
+        }
+        else
+        {
+          crash("Error: Script ID " + to_string(get<4>(s)) + " doesn't exist in the current map.");
+        }
+      }
+      else
+      {
+        return make_tuple(get<0>(s), get<1>(s), get<2>(s), true, get<5>(s), get<6>(s));
+      }
+    }
+  }
+  return make_tuple(get<0>(s), get<1>(s), get<2>(s), false, get<5>(s), get<6>(s));
+}
+
+void Script_Handler::render(const World* const world) const
+{
+  if(m_script != nullptr)
+  {
+    m_script->render(world);
+  }
+}
+
+void Script_Handler::run_script(const long & index)
+{
+  if(m_script == nullptr)
+  {
+    m_script = new Script(m_script_list[index]);
+    ++mem;
+  }
+}
+
+Script::~Script()
 {
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
   {
@@ -14,6 +78,12 @@ Map_Handler::Script::~Script()
   {
     delete m_caption_list[i];
     m_caption_list[i] = nullptr;
+    --mem;
+  }
+  for(long i{0}; i < static_cast<long>(m_image_list.size()); ++i)
+  {
+    delete m_image_list[i];
+    m_image_list[i] = nullptr;
     --mem;
   }
   if(m_textbox != nullptr)
@@ -29,11 +99,12 @@ Map_Handler::Script::~Script()
   m_caption_list.clear();
 }
 
-void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* music_player, World* world)
+tuple<bool, string, string, bool, long, const Map_Data*, tuple<Direction, long, long, long>> Script::update_input(Tilemap* map, Music_Player* music_player, World* world, Input_Wrapper* input)
 {
+  tuple<bool, string, string, bool, long, const Map_Data*, tuple<Direction, long, long, long>> s{make_tuple(false, "NULL", "NULL", m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, nullptr, make_tuple(Direction::Down, 0, 0, 0))};
   if(m_textbox != nullptr)
   {
-    m_textbox->update_input(world);
+    m_textbox->update_input(world, input);
   }
 
   if(m_inner_index == m_inner_index2)
@@ -46,24 +117,23 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
       while(m_inner_index != static_cast<long>(m_events[m_outer_index].size()))
       {
         Script_Op opcode{m_events[m_outer_index].get_opcode(m_inner_index)};
-
+        long target_index{-1};
         switch(opcode)
         {
-          case Script_Op::Teleport_Entity:
-            map_handler->teleport_entity(get<Teleport_Entity_Params>(m_events[m_outer_index][m_inner_index]).m_entity_name, get<Teleport_Entity_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x, get<Teleport_Entity_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y);
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
           case Script_Op::Switch_Game_State:
-            map_handler->add_game_state(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
-            map_handler->pop_state();
+            s = make_tuple(true, get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name, "NULL", m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, nullptr, make_tuple(Direction::Down, 0, 0, 0));
             ++m_inner_index;
             ++m_inner_index2;
             break;
 
           case Script_Op::Add_Game_State:
-            map_handler->add_game_state(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            s = make_tuple(false, get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name, "NULL", m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, nullptr, make_tuple(Direction::Down, 0, 0, 0));
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
+
+          case Script_Op::Add_Game_State_Pair:
+            s = make_tuple(false, get<Name_Pair_Params>(m_events[m_outer_index][m_inner_index]).m_name, get<Name_Pair_Params>(m_events[m_outer_index][m_inner_index]).m_name2, m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, nullptr, make_tuple(Direction::Down, 0, 0, 0));
             ++m_inner_index;
             ++m_inner_index2;
             break;
@@ -82,52 +152,61 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             ++m_inner_index2;
             break;
 
+          case Script_Op::Add_Image:
+            m_image_list.push_back(new Image_Data{get<Add_Image_Params>(m_events[m_outer_index][m_inner_index]).m_image, get<Add_Image_Params>(m_events[m_outer_index][m_inner_index]).m_y_pos});
+            ++mem;
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
+
           case Script_Op::Show_NPC:
-            map_handler->show_npc(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            map->show_npc(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
             ++m_inner_index2;
             break;
         
           case Script_Op::Hide_NPC:
-            map_handler->hide_npc(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            map->hide_npc(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
             ++m_inner_index2;
             break;
         
           case Script_Op::Lock_Controls:
-            map_handler->lock_controls();
+            map->lock_controls();
             ++m_inner_index;
             ++m_inner_index2;
             break;
         
           case Script_Op::Unlock_Controls:
-            map_handler->unlock_controls();
+            map->unlock_controls();
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
+
+          case Script_Op::Play_Music:
+            music_player->play_global_music(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
             ++m_inner_index2;
             break;
 
           case Script_Op::Play_Sound:
-
+            g_sound_player->play_global_sound(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            ++m_inner_index;
+            ++m_inner_index2;
             break;
         
           case Script_Op::Change_Map:
             for(long j{0}; j < static_cast<long>(MAPS.size()); ++j)
             {
-              if(MAPS[j].m_id == get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name)
+              if(MAPS[j].m_id == get<Change_Map_Params>(m_events[m_outer_index][m_inner_index]).m_name)
               {
-                map_handler->add_map(music_player, MAPS[j], map_handler);
+                s = make_tuple(false, "NULL", "NULL", m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, &MAPS[j], make_tuple(get<Change_Map_Params>(m_events[m_outer_index][m_inner_index]).m_hero_start_facing_dir, get<Change_Map_Params>(m_events[m_outer_index][m_inner_index]).m_start_tile_x, get<Change_Map_Params>(m_events[m_outer_index][m_inner_index]).m_start_tile_y, get<Change_Map_Params>(m_events[m_outer_index][m_inner_index]).m_start_layer));
               }
             }
             ++m_inner_index;
             ++m_inner_index2;
             break;
-        
-          case Script_Op::Deactivate_Trigger:
-            map_handler->deactivate_trigger();
-            ++m_inner_index;
-            ++m_inner_index2;
-            break;
-        
+
           case Script_Op::Add_Key_Item:
             world->add_key_item(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
@@ -158,9 +237,15 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             ++m_inner_index;
             ++m_inner_index2;
             break;
+
+          case Script_Op::Add_Item:
+            world->add_item(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            ++m_inner_index;
+            ++m_inner_index2;
+            break;
         
           case Script_Op::Check_Entity_Position:
-            if(map_handler->check_entity_position(get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_x, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_y) == true)
+            if(map->check_entity_position(get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_x, get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_tile_offset_y) == true)
             {
               m_new_script = get<Check_Entity_Position_Params>(m_events[m_outer_index][m_inner_index]).m_there;
             }
@@ -173,7 +258,7 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             break;
         
           case Script_Op::Write_Map_Tile:
-            map_handler->write_tile(get<Write_Map_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_layer,
+            map->write_tile(get<Write_Map_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_layer,
                                     get<Write_Map_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_sublayer,
                                     get<Write_Map_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_new_collision,
                                     get<Write_Map_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_tile_to_change_x,
@@ -207,6 +292,18 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             ++m_inner_index;
             break;
 
+          case Script_Op::Fade_In_Image:
+            instant = false;
+            m_tween_list.push_back(Tween_Data{"Fade In Image", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, 255 / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), 0, 255});
+            ++m_inner_index;
+            break;
+
+          case Script_Op::Fade_Out_Image:
+            instant = false;
+            m_tween_list.push_back(Tween_Data{"Fade Out Image", get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_name, -(255 / (SCREEN_FPS * get<Fade_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), 255, 0});
+            ++m_inner_index;
+            break;
+
           case Script_Op::Fade_Out_Screen:
             if(m_screen_list.empty() == true)
             {
@@ -236,10 +333,27 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             ++m_inner_index;
             break;
 
+          case Script_Op::Scroll_Image_Y:
+            instant = false;
+            for(long j{0}; j < static_cast<long>(m_image_list.size()); ++j)
+            {
+              if(m_image_list[j]->m_id == get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_name)
+              {
+                target_index = j;
+              }
+            }
+            if(target_index == -1)
+            {
+              crash("Error: \"" + get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_name + "\" doesn't exist in the current script.");
+            }
+            m_tween_list.push_back(Tween_Data{"Scroll Image Y", get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_name, (static_cast<double>(get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_destination) - static_cast<double>(m_image_list[target_index]->m_y_pos)) / (SCREEN_FPS * get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_seconds), static_cast<double>(m_image_list[target_index]->m_y_pos), static_cast<double>(get<Scroll_Params>(m_events[m_outer_index][m_inner_index]).m_destination)});
+            ++m_inner_index;
+            break;
+
           case Script_Op::Set_NPC_Path:
             instant = false;
             m_tween_list.push_back(Tween_Data{"Set NPC Path", get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, 0, 0, 0});
-            map_handler->set_npc_path(get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_path);
+            map->set_npc_path(get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name, get<Set_NPC_Path_Params>(m_events[m_outer_index][m_inner_index]).m_path);
             ++m_inner_index;
             break;
 
@@ -249,12 +363,22 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted(map_handler->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset);
+            m_textbox->create_fitted(map->get_entity_screen_pos_x(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map->get_entity_screen_pos_y(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset);
+            ++m_inner_index;
+            break;
+
+          case Script_Op::Narrate:
+            instant = false;
+            m_tween_list.push_back(Tween_Data{"Narrate", "NULL", 0, 0, 0});
+            m_textbox = new Textbox;
+            ++mem;
+            m_textbox->add_text(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            m_textbox->create_fixed(PANEL_MENU_UL_X, 0, PANEL_WIDTH_SCREEN, PANEL_HEIGHT_FOUR_LINES, false);
             ++m_inner_index;
             break;
 
           case Script_Op::Interact:
-            m_new_script = map_handler->get_npc_script(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
+            m_new_script = map->get_npc_interact_script(get<Name_Params>(m_events[m_outer_index][m_inner_index]).m_name);
             ++m_inner_index;
             ++m_inner_index2;
             break;
@@ -264,10 +388,16 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             m_tween_list.push_back(Tween_Data{"Talk", "NULL", 0, 0, 0});
             m_textbox = new Textbox;
             ++mem;
-            m_textbox->add_text(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->add_title(get<Say_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name);
-            m_textbox->add_portrait(TEMPEST_SMALL_PORTRAIT_IMAGE);
-            m_textbox->create_fixed(TEXTBOX_PADDING_SCREEN, SCREEN_HEIGHT - (TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4) - TEXTBOX_PADDING_SCREEN_Y, SCREEN_WIDTH - TEXTBOX_PADDING_SCREEN * 2, TEXTBOX_PADDING_SHORT * 2 + FONT_TEXT_HEIGHT * 4);
+            m_textbox->add_text(get<Talk_Params>(m_events[m_outer_index][m_inner_index]).m_text);
+            if(get<Talk_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name != "NULL")
+            {
+              m_textbox->add_title(get<Talk_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name);
+            }
+            if(get<Talk_Params>(m_events[m_outer_index][m_inner_index]).m_portrait_image->m_name != "NULL")
+            {
+              m_textbox->add_portrait(get<Talk_Params>(m_events[m_outer_index][m_inner_index]).m_portrait_image);
+            }
+            m_textbox->create_fixed(PANEL_MENU_UL_X, SCREEN_HEIGHT - PANEL_HEIGHT_THREE_LINES - PANEL_SCREEN_OFFSET_Y, PANEL_WIDTH_SCREEN, PANEL_HEIGHT_THREE_LINES);
             ++m_inner_index;
             break;
         
@@ -279,20 +409,22 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
             m_textbox = new Textbox;
             ++mem;
             m_textbox->add_text(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_text);
-            m_textbox->create_fitted_choices(map_handler->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map_handler->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices);
+            m_textbox->create_fitted_choices(map->get_entity_screen_pos_x(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_x_offset, map->get_entity_screen_pos_y(get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_npc_name) + get<Say_Choices_Params>(m_events[m_outer_index][m_inner_index]).m_y_offset, m_choices);
             ++m_inner_index;
             break;
 
           case Script_Op::Move_Camera_To_Tile:
             instant = false;
-            map_handler->set_follow_cam("NULL");
-            m_tween_list.push_back(Tween_Data{"Move Camera To Tile X", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2) - map_handler->get_manual_cam_x() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map_handler->get_manual_cam_x()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * map_handler->get_map_tile_width() + map_handler->get_map_tile_width() / 2) - SCREEN_WIDTH / 2)});
-            m_tween_list.push_back(Tween_Data{"Move Camera To Tile Y", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2) - map_handler->get_manual_cam_y() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map_handler->get_manual_cam_y()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map_handler->get_map_tile_height() + map_handler->get_map_tile_height() / 2) - SCREEN_HEIGHT / 2)});
+            map->set_follow_cam("NULL");
+            m_tween_list.push_back(Tween_Data{"Move Camera To Tile X", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2) - SCREEN_WIDTH / 2) - map->get_manual_cam_x() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map->get_manual_cam_x()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_x * MAP_TILE_WIDTH + MAP_TILE_WIDTH / 2) - SCREEN_WIDTH / 2)});
+            m_tween_list.push_back(Tween_Data{"Move Camera To Tile Y", "NULL", static_cast<double>(((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map->get_tile_height() + map->get_tile_height() / 2) - SCREEN_HEIGHT / 2) - map->get_manual_cam_y() / (SCREEN_FPS * get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_seconds)), static_cast<double>(map->get_manual_cam_y()), static_cast<double>((get<Move_Camera_To_Tile_Params>(m_events[m_outer_index][m_inner_index]).m_destination_tile_y * map->get_tile_height() + map->get_tile_height() / 2) - SCREEN_HEIGHT / 2)});
             ++m_inner_index;
             break;
 
           case Script_Op::Battle_Transition:
             instant = false;
+            music_player->stop_global_music();
+            g_sound_player->play_global_sound("Battle Transition");
             m_tween_list.push_back(Tween_Data{"Battle Transition", "NULL", 1, 0, BATTLE_TRANSITION_FRAMES});
             ++m_inner_index;
             break;
@@ -337,6 +469,27 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
           }
         }
 
+        else if(m_tween_list[i].m_function == "Fade In Image" || m_tween_list[i].m_function == "Fade Out Image")
+        {
+          m_tween_list[i].m_position += m_tween_list[i].m_velocity;
+          long target_index{-1};
+          for(long j{0}; j < static_cast<long>(m_image_list.size()); ++j)
+          {
+            if(m_image_list[j]->m_id == m_tween_list[i].m_target)
+            {
+              target_index = j;
+            }
+          }
+          m_image_list[target_index]->m_alpha = m_tween_list[i].m_position;
+          if((m_tween_list[i].m_function == "Fade In Image" && m_tween_list[i].m_position >= m_tween_list[i].m_end) || (m_tween_list[i].m_function == "Fade Out Image" && m_tween_list[i].m_position <= m_tween_list[i].m_end))
+          {
+            m_tween_list[i].m_position = m_tween_list[i].m_end;
+            m_image_list[target_index]->m_alpha = m_tween_list[i].m_position;
+            m_tween_list[i].m_done = true;
+            ++m_inner_index2;
+          }
+        }
+
         else if(m_tween_list[i].m_function == "Fade In Screen" || m_tween_list[i].m_function == "Fade Out Screen")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
@@ -353,11 +506,32 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
         else if(m_tween_list[i].m_function == "Fade In NPC" || m_tween_list[i].m_function == "Fade Out NPC")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
-          map_handler->change_entity_alpha(m_tween_list[i].m_target, m_tween_list[i].m_position);
+          map->change_entity_alpha(m_tween_list[i].m_target, m_tween_list[i].m_position);
           if((m_tween_list[i].m_function == "Fade In NPC" && m_tween_list[i].m_position >= m_tween_list[i].m_end) || (m_tween_list[i].m_function == "Fade Out NPC" && m_tween_list[i].m_position <= m_tween_list[i].m_end))
           {
             m_tween_list[i].m_position = m_tween_list[i].m_end;
-            map_handler->change_entity_alpha(m_tween_list[i].m_target, m_tween_list[i].m_position);
+            map->change_entity_alpha(m_tween_list[i].m_target, m_tween_list[i].m_position);
+            m_tween_list[i].m_done = true;
+            ++m_inner_index2;
+          }
+        }
+
+        else if(m_tween_list[i].m_function == "Scroll Image Y")
+        {
+          m_tween_list[i].m_position += m_tween_list[i].m_velocity;
+          long target_index{-1};
+          for(long j{0}; j < static_cast<long>(m_image_list.size()); ++j)
+          {
+            if(m_image_list[j]->m_id == m_tween_list[i].m_target)
+            {
+              target_index = j;
+            }
+          }
+          m_image_list[target_index]->m_y_pos = m_tween_list[i].m_position;
+          if((m_tween_list[i].m_start >= m_tween_list[i].m_end && m_tween_list[i].m_position <= m_tween_list[i].m_end) || (m_tween_list[i].m_start <= m_tween_list[i].m_end && m_tween_list[i].m_position >= m_tween_list[i].m_end))
+          {
+            m_tween_list[i].m_position = m_tween_list[i].m_end;
+            m_image_list[target_index]->m_y_pos = m_tween_list[i].m_position;
             m_tween_list[i].m_done = true;
             ++m_inner_index2;
           }
@@ -375,14 +549,14 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
 
         else if(m_tween_list[i].m_function == "Set NPC Path")
         {
-          if(map_handler->npc_path_finished(m_tween_list[i].m_target) == true)
+          if(map->npc_path_finished(m_tween_list[i].m_target) == true)
           {
             m_tween_list[i].m_done = true;
             ++m_inner_index2;
           }
         }
 
-        else if(m_tween_list[i].m_function == "Say" || m_tween_list[i].m_function == "Talk")
+        else if(m_tween_list[i].m_function == "Say" || m_tween_list[i].m_function == "Talk" || m_tween_list[i].m_function == "Narrate")
         {
           if(m_textbox->dead() == true)
           {
@@ -410,11 +584,11 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
         else if(m_tween_list[i].m_function == "Move Camera To Tile X")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
-          map_handler->set_manual_cam_x(m_tween_list[i].m_position);
+          map->set_manual_cam_x(m_tween_list[i].m_position);
           if((m_tween_list[i].m_velocity < 0 && m_tween_list[i].m_position <= m_tween_list[i].m_end) || (m_tween_list[i].m_velocity >= 0 && m_tween_list[i].m_position >= m_tween_list[i].m_end))
           {
             m_tween_list[i].m_position = m_tween_list[i].m_end;
-            map_handler->set_manual_cam_x(m_tween_list[i].m_position);
+            map->set_manual_cam_x(m_tween_list[i].m_position);
             m_tween_list[i].m_done = true;
           }
         }
@@ -422,11 +596,11 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
         else if(m_tween_list[i].m_function == "Move Camera To Tile Y")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
-          map_handler->set_manual_cam_y(m_tween_list[i].m_position);
+          map->set_manual_cam_y(m_tween_list[i].m_position);
           if((m_tween_list[i].m_velocity < 0 && m_tween_list[i].m_position <= m_tween_list[i].m_end) || (m_tween_list[i].m_velocity >= 0 && m_tween_list[i].m_position >= m_tween_list[i].m_end))
           {
             m_tween_list[i].m_position = m_tween_list[i].m_end;
-            map_handler->set_manual_cam_y(m_tween_list[i].m_position);
+            map->set_manual_cam_y(m_tween_list[i].m_position);
             m_tween_list[i].m_done = true;
             ++m_inner_index2;
           }
@@ -435,6 +609,11 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
         else if(m_tween_list[i].m_function == "Battle Transition")
         {
           m_tween_list[i].m_position += m_tween_list[i].m_velocity;
+          if(m_tween_list[i].m_position >= m_tween_list[i].m_end - 10)
+          {
+            music_player->play_global_music("Battle");
+            s = make_tuple(false, "Battle", "Battle Transition", m_outer_index == static_cast<long>(m_events.m_steps.size()), m_new_script, nullptr, make_tuple(Direction::Down, 0, 0, 0));
+          }
           if(m_tween_list[i].m_position >= m_tween_list[i].m_end)
           {
             m_tween_list[i].m_done = true;
@@ -453,9 +632,10 @@ void Map_Handler::Script::update_input(Map_Handler* map_handler, Music_Player* m
       ++m_outer_index;
     }
   }
+  return s;
 }
 
-void Map_Handler::Script::render(const World* const world) const
+void Script::render(const World* const world) const
 {
   long index{-1};
   for(long i{0}; i < static_cast<long>(m_tween_list.size()); ++i)
@@ -468,7 +648,7 @@ void Map_Handler::Script::render(const World* const world) const
 
   if(index != -1)
   {
-    DrawRectanglePro(Rectangle{SCREEN_WIDTH, SCREEN_HEIGHT, static_cast<float>(m_tween_list[index].m_position) * 4, static_cast<float>(m_tween_list[index].m_position) * 4}, Vector2{SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}, 0/*static_cast<float>(m_tween_list[index].m_position)*/, Color{255, 255, 255, 255});
+    DrawRing(Vector2{SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2}, SCREEN_HEIGHT / 2 - m_tween_list[index].m_position * 4, SCREEN_HEIGHT / 2 + m_tween_list[index].m_position * 4, 0, 360, 4, Color{255, 255, 255, 255});
   }
 
   for(long i{0}; i < static_cast<long>(m_screen_list.size()); ++i)
@@ -476,28 +656,23 @@ void Map_Handler::Script::render(const World* const world) const
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Color{static_cast<unsigned char>(m_screen_list[i]->m_red), static_cast<unsigned char>(m_screen_list[i]->m_green), static_cast<unsigned char>(m_screen_list[i]->m_blue), static_cast<unsigned char>(m_screen_list[i]->m_alpha)});
   }
 
-  if(m_textbox != nullptr)
+  for(long i{0}; i < static_cast<long>(m_image_list.size()); ++i)
   {
-    m_textbox->render(world);
+    DrawTexturePro(m_image_list[i]->m_image, Rectangle{0, 0, static_cast<float>(m_image_list[i]->m_image.width), static_cast<float>(m_image_list[i]->m_image.height)}, Rectangle{static_cast<float>(SCREEN_WIDTH / 2 - m_image_list[i]->m_image.width / 2), static_cast<float>(m_image_list[i]->m_y_pos), static_cast<float>(m_image_list[i]->m_image.width), static_cast<float>(m_image_list[i]->m_image.height)}, Vector2{0, 0}, 0, Color{0xFF, 0xFF, 0xFF, static_cast<unsigned char>(m_image_list[i]->m_alpha)});
   }
 
   for(long i{0}; i < static_cast<long>(m_caption_list.size()); ++i)
   {
     world->render_text_center(m_caption_list[i]->m_font, m_caption_list[i]->m_text, m_caption_list[i]->m_y_pos, m_caption_list[i]->m_alpha);
   }
+
+  if(m_textbox != nullptr)
+  {
+    m_textbox->render(world);
+  }
 }
 
-bool Map_Handler::Script::finished() const
-{
-  return m_outer_index == static_cast<long>(m_events.m_steps.size());
-}
-
-long Map_Handler::Script::get_next_script() const
-{
-  return m_new_script;
-}
-
-Map_Handler::Script::Caption_Data::Caption_Data(const string & font_name, const string & id, const string & text, const long & y_pos, const long & alpha)
+Script::Caption_Data::Caption_Data(const string & font_name, const string & id, const string & text, const long & y_pos, const long & alpha)
 {
   m_font = font_name;
   m_id = id;

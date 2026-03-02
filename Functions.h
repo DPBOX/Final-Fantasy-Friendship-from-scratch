@@ -5,6 +5,7 @@ class Player_Summary;
 
 long count_words(const string & text);
 long get_text_font_word_width(string word);
+long speed_to_time_points(const long & speed);
 
 template <typename T = string>
 vector<T*> to_pointers(const vector<T> & vec)

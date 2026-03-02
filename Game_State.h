@@ -1,11 +1,10 @@
 #ifndef GAME_STATE_H
 #define GAME_STATE_H
-
-#include "Tilemap.h"
-#include "State_Machine.h"
+#include "Battle.h"
 
 class State_Manager;
-class Map_Handler;
+class State_Machine;
+class Panel;
 
 class Game_State
 {
@@ -17,8 +16,8 @@ class Game_State
 
     virtual string get_name() const;
 
-    virtual void update() = 0;
-    virtual void update_input(State_Manager* state_manager, World* world) = 0;
+    virtual void update(World* world) = 0;
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input) = 0;
     virtual void render(const World* const world) const = 0;
   protected:
     string m_name{"Game State"};
@@ -42,8 +41,8 @@ class Title_State : public Game_State
     Title_State & operator =(const Title_State & obj) = delete;
     virtual ~Title_State(){}
 
-    virtual void update(){}
-    virtual void update_input(State_Manager* state_manager, World* world);
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
     virtual void render(const World* const world) const;
   private:
     const Title_State_Renderer m_renderer{};
@@ -52,16 +51,17 @@ class Title_State : public Game_State
 class Explore_State : public Game_State
 {
   public:
-    explicit Explore_State(Music_Player* music_player, const Map_Data & map_data, const Scr & start_script);
+    explicit Explore_State(Music_Player* music_player, const Map_Data & map_data, const long & start_script_index);
     Explore_State(const Explore_State & obj) = delete;
     Explore_State & operator =(const Explore_State & obj) = delete;
     virtual ~Explore_State();
 
-    virtual void update(){}
-    virtual void update_input(State_Manager* state_manager, World* world);
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
     virtual void render(const World* const world) const;
   private:
-    Map_Handler* m_map_handler{nullptr};
+    Tilemap* m_map{nullptr};
+    Script_Handler* m_script_handler{nullptr};
 };
 
 class Front_Menu_State : public Game_State
@@ -72,8 +72,8 @@ class Front_Menu_State : public Game_State
     Front_Menu_State & operator =(const Front_Menu_State & obj) = delete;
     virtual ~Front_Menu_State();
 
-    virtual void update();
-    virtual void update_input(State_Manager* state_manager, World* world);
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
     virtual void render(const World* const world) const;
   private:
     State_Machine* m_machine{nullptr};
@@ -98,41 +98,89 @@ class Game_Over_State : public Game_State
     Game_Over_State & operator =(const Game_Over_State & obj) = delete;
     virtual ~Game_Over_State(){}
 
-    virtual void update(){}
-    virtual void update_input(State_Manager* state_manager, World* world);
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
     virtual void render(const World* const world) const;
   private:
     const Game_Over_State_Renderer m_renderer{};
 };
 
+class Battle_State_Renderer
+{
+  public:
+    explicit Battle_State_Renderer();
+    Battle_State_Renderer(const Battle_State_Renderer & obj) = delete;
+    Battle_State_Renderer & operator =(const Battle_State_Renderer & obj) = delete;
+    ~Battle_State_Renderer();
+    void render(const World* const world) const;
+  private:
+    Texture2D m_battle_background{};
+    Panel* m_owner_panel{nullptr};
+};
+
+class Battle_State : public Game_State
+{
+  public:
+    explicit Battle_State(const World* const world);
+    Battle_State(const Battle_State & obj) = delete;
+    Battle_State & operator =(const Battle_State & obj) = delete;
+    virtual ~Battle_State();
+
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
+    virtual void render(const World* const world) const;
+  private:
+    void add_turns(vector<Battle_Character*> characters, const World* const world);
+    bool party_defeated(const World* const world) const;
+    bool enemies_defeated(const World* const world) const;
+
+    const Battle_State_Renderer m_renderer{};
+    vector<Battle_Character*> m_party{};
+    vector<Battle_Character*> m_enemies{};
+    Battle_Character* m_selected_character{nullptr};
+    Battle_Event_Queue m_battle_event_queue{};
+    Battle_Event_Stack m_battle_event_stack{};
+};
+
+class Battle_Transition_State_Renderer
+{
+  public:
+    explicit Battle_Transition_State_Renderer(){};
+    Battle_Transition_State_Renderer(const Battle_Transition_State_Renderer & obj) = delete;
+    Battle_Transition_State_Renderer & operator =(const Battle_Transition_State_Renderer & obj) = delete;
+    ~Battle_Transition_State_Renderer(){};
+    void render(const World* const world, const long & alpha) const;
+};
+
+class Battle_Transition_State : public Game_State
+{
+  public:
+    explicit Battle_Transition_State();
+    Battle_Transition_State(const Battle_Transition_State & obj) = delete;
+    Battle_Transition_State & operator =(const Battle_Transition_State & obj) = delete;
+    virtual ~Battle_Transition_State(){}
+
+    virtual void update(World* world);
+    virtual tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
+    virtual void render(const World* const world) const;
+  private:
+    long m_alpha{255};
+    const Battle_Transition_State_Renderer m_renderer{};
+};
+
 class State_Manager
 {
   public:
-    explicit State_Manager(World* world, Music_Player* music_player);
+    explicit State_Manager();
     State_Manager(const State_Manager & obj) = delete;
     State_Manager & operator =(const State_Manager & obj) = delete;
     ~State_Manager();
 
-    void set_next_state(Game_State* new_state);
-    void pop_state();
-
-    void change_state();
-
-    void create_new_explore_state();
-    void create_new_front_menu_state();
-    void create_new_game_over_state();
-    void create_new_battle_state();
-
-    void update_input(State_Manager* state_manager);
-    void render() const;
-
-    Music_Player* get_music_player() const;
+    void change_state(const tuple<bool, Game_State*, Game_State*> & state);
+    tuple<bool, Game_State*, Game_State*> update_input(World* world, Music_Player* music_player, Input_Wrapper* input);
+    void render(World* world) const;
   private:
     vector<Game_State*> m_states{};
-    Game_State* m_next_state{nullptr};
-    bool m_pop{false};
-    World* const m_world{nullptr};
-    Music_Player* const m_music_player{nullptr};
 };
 
 class Game
@@ -152,6 +200,8 @@ class Game
     State_Manager* m_state_manager{nullptr};
     World* m_world{nullptr};
     Music_Player* m_music_player{nullptr};
+    Input_Wrapper* m_input{nullptr};
+    tuple<bool, Game_State*, Game_State*> m_next_state{};
 };
 
 #endif
