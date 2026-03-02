@@ -3,15 +3,19 @@ This fan game https://gamejolt.com/games/my-little-pony-rpg-the-elements-of-harm
 How to compile
 
 debug version on linux
+
 g++ *.cpp -Wnon-virtual-dtor -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal -Winline -Wunreachable-code -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Weffc++ -Wzero-as-null-pointer-constant -Wmain -pedantic -Wextra -Wall -g -std=gnu++20 -fPIC -DOS_LINUX -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -o RPG_debug_linux o/*.o
 
 release version on linux
+
 g++ *.cpp -s -o3 -std=gnu++20 -fPIC -DOS_LINUX -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 -o RPG_linux o/*.o
 
 debug version on windows
+
 g++ *.cpp -Wnon-virtual-dtor -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal -Winline -Wunreachable-code -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Weffc++ -Wzero-as-null-pointer-constant -Wmain -pedantic -Wextra -Wall -g -std=gnu++20 -fPIC -DOS_LINUX -lraylib -lgdi32 -lwinmm -lm -lpthread -o RPG_debug_windows o/*.o
 
 release version on windows
+
 g++ *.cpp -s -o3 -std=gnu++20 -fPIC -DOS_LINUX -lraylib -lgdi32 -lwinmm -lm -lpthread -o RPG_windows o/*.o
 
 However, the game will not compile out of the box because you will get a bunch of linker errors saying that it can not find the stuff in Media.h. This is because the github repository is missing a bunch of .o files that the game needs to compile. Said .o files are the image, music, and sound effect files that the game uses and get baked into the .exe. They contain copyrighted material that I do not own, so they can not be included in the repository. If you need the .o files and want to compile them, you will need to contact me privately either on here or on Discord so I can send them to you.
